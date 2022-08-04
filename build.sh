@@ -15,7 +15,7 @@ cd $COMP_DIR
 
 set -e
 
-clang++ -g -DNDEBUG -DVLOG -DVLOG_VERBOSE main.cpp ${SRC_VAR} `llvm-config --cxxflags --ldflags --system-libs --libs core` -o voltt
+clang++ -g -DNDEBUG -DVLOG -DVLOG_VERBOSE ${SRC_VAR} `llvm-config --cxxflags --ldflags --system-libs --libs core` -o voltt
 
 echo "RUNNING voltt"
 ./voltt
