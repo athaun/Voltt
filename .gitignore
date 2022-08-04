@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Voltt
+log.txt
+test.vlt
