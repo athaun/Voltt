@@ -34,3 +34,5 @@
 # Voltt
 log.txt
 test.vlt
+compile_commands.json
+.tidy
