@@ -35,4 +35,4 @@
 log.txt
 test.vlt
 compile_commands.json
-.tidy
+.clang-tidy
