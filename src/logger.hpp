@@ -8,7 +8,7 @@
 
 namespace Logger {
 
-auto flush(std::ostream& _os) -> void;
+static std::ostream& _os = std::cerr;
 
 struct DebugCtx_t {
 	const char* m_file;
@@ -23,6 +23,9 @@ auto operator<<(std::ostream&, const DebugCtx_t&) -> std::ostream&;
 namespace DebugErrID {
 enum DebugErrID_t {
 	UNKNOWN,
+	TODO,
+	UNREACHABLE_ERR,
+	TOKID_STR_ERR,
 };
 
 auto to_str(const DebugErrID_t) -> const char*;
@@ -48,7 +51,40 @@ auto to_str(const CompErrID_t) -> const char*;
 
 } // namespace CompErrID
 
-auto debug(const DebugCtx_t& _ctx, const DebugErrID::DebugErrID_t _id, const char* _msg) -> void;
-auto cmperr(const CompCtx_t& _ctx, const CompErrID::CompErrID_t _id, const char* _msg) -> void;
+template<typename MSG>
+auto debug(const DebugCtx_t& _ctx, const DebugErrID::DebugErrID_t _id, MSG _msg) -> void
+{
+		_os << "\n!!! This is a compiler debug error used for compiler development !!!\n";
+		_os << "!!! If you are not developing the Voltt compiler this is most likely a bug !!!\n\n";
+		_os << "DBG![D" << std::to_string(_id) << "]: " << DebugErrID::to_str(_id) << '\n';
+		_os << _ctx << '\n';
+		_os << " |\n";
+		_os << " | " << _msg << std::endl;
+		_os << " |\n";
+
+	abort();
+}
+
+template<typename MSG>
+auto cmperr(const CompCtx_t& _ctx, const CompErrID::CompErrID_t _id, MSG _msg) -> void
+{
+	_os << "ERR![E" << std::to_string(_id) << "]: " << CompErrID::to_str(_id) << '\n';
+	_os << _ctx << '\n';
+	_os << " |\n";
+	_os << " | " << _msg << std::endl;
+	_os << " |\n";
+
+	exit(1);
+}
+
+template<typename MSG>
+auto msg(const DebugCtx_t& _ctx, MSG _msg) -> void
+{
+		_os << "MSG![]:\n";
+		_os << _ctx << '\n';
+		_os << " |\n";
+		_os << " | " << _msg << std::endl;
+		_os << " |\n";
+}
 
 } // namespace Logger
