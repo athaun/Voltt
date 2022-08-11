@@ -35,7 +35,6 @@ auto static vlt_keyword_tok(const char* _source, const size_t _start, const size
 	}
 
 	for ( size_t i = 0; i < len; i++ ) {
-		Logger::msg(Logger::DBCTX, _source[_start+i]);
 		switch(_source[_start+i]) {
 			default: return Tok::TokenIdent;
 			case DIGIT_CASE: continue;
