@@ -13,13 +13,23 @@ auto to_str(const TokID _id) -> const char*
 				std::string{"Unable to convert: "}+std::to_string(_id)+" to str."
 			);
 	
-		case TokenColonSymbol: return "TokenColonSymbol";
-		case TokenEqSymbol: return "TokenEqSymbol";
-		case TokenUndefinedIdent: return "TokenUndefinedIdent";
-		case TokenTypI32: return "TokenTypI32";
-		case TokenLiteralI32: return "TokenLiteralI32";
+		case TokenColonSymbol: return ":";
+		case TokenColonInferMut: return ":=";
+		case TokenColonInferConst: return "::";
+		case TokenEqSymbol: return "=";
+
+		case TokenBinOpAdd: return "+";
+		case TokenBinOpSub: return "-";
+		case TokenBinOpMul: return "*";
+		case TokenBinOpDiv: return "/";
+
+		case TokenIdent: return "TokenIdent";
+		
+		case TokenTypS32: return "s32";
+		
+		case TokenLiteralNumeric: return "TokenLiteralNumeric";
+		
 		case TokenEndOfFile: return "TokenEndOfFile";
-		case TokenNewline: return "TokenNewline";
 	}
 	Logger::debug(Logger::DBCTX, Logger::DebugErrID::DebugErrID_t::UNREACHABLE_ERR, "This wasn't supposed to happen...");
 }
@@ -27,11 +37,10 @@ auto to_str(const TokID _id) -> const char*
 auto operator<<(std::ostream& _os, const Token& _tok) -> std::ostream& 
 {
 	_os << "Token {\n";
-	_os << "  m_id: " << to_str(_tok.m_id) << '\n';
-	_os << "  m_start: " << _tok.m_start << '\n';
-	_os << "  m_end: " << _tok.m_end << '\n';
-	_os << "  m_line: " << _tok.m_line << '\n';
-	_os << "  m_col: " << _tok.m_col << '\n';
+	_os << "  id: " << to_str(_tok.id) << '\n';
+	_os << "  offset: " << _tok.offset << '\n';
+	_os << "  line: " << _tok.line << '\n';
+	_os << "  col: " << _tok.col << '\n';
 	_os << '}';
 	return _os;
 }

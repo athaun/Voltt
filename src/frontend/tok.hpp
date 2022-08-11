@@ -5,30 +5,39 @@
 namespace Voltt {
 namespace Tok {
 
-enum TokID {
+enum TokID : uint8_t {
 
     TokenColonSymbol,
+	TokenColonInferMut,
+	TokenColonInferConst,
     TokenEqSymbol,
 
-    TokenUndefinedIdent,
+	TokenBinOpAdd,
+	TokenBinOpSub,
+	TokenBinOpMul,
+	TokenBinOpDiv,
 
-    TokenTypI32,
+    TokenIdent,
 
-    TokenLiteralI32,
+    TokenTypS32,
+
+    TokenLiteralNumeric,
 
     TokenEndOfFile,
-    TokenNewline,
 };
 
 auto to_str(const TokID) -> const char*;
 
 struct Token {
-	TokID m_id;
+	TokID id;
 
-	uint32_t m_start;
-	uint32_t m_end;
-	uint32_t m_line;
-	uint32_t m_col;
+	size_t offset;
+	size_t line;
+	size_t col;
+
+	Token(const TokID _id, const size_t _offset, const size_t _line, const size_t _col)
+	: id(_id), offset(_offset), line(_line), col(_col)
+	{}
 };
 
 

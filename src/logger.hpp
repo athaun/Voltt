@@ -2,9 +2,6 @@
 
 #include <iostream>
 #include <ostream>
-#include <fstream>
-#include <memory>
-#include <vector>
 
 namespace Logger {
 
@@ -21,11 +18,13 @@ struct DebugCtx_t {
 auto operator<<(std::ostream&, const DebugCtx_t&) -> std::ostream&;
 
 namespace DebugErrID {
-enum DebugErrID_t {
+enum DebugErrID_t : uint8_t {
 	UNKNOWN,
 	TODO,
 	UNREACHABLE_ERR,
 	TOKID_STR_ERR,
+	TOK_STATE_ERR,
+	UNWRAP_ERR,
 };
 
 auto to_str(const DebugErrID_t) -> const char*;
@@ -43,8 +42,11 @@ struct CompCtx_t {
 auto operator<<(std::ostream&, const CompCtx_t&) -> std::ostream&;
 
 namespace CompErrID {
-enum CompErrID_t {
+enum CompErrID_t : uint8_t {
 	UNKNOWN,
+	INVALID_FILE_EXTENSION_ERR,
+	UNKNOWN_FILE_ERR,
+	READ_FILE_ERR,
 };
 
 auto to_str(const CompErrID_t) -> const char*;
@@ -80,11 +82,15 @@ auto cmperr(const CompCtx_t& _ctx, const CompErrID::CompErrID_t _id, MSG _msg) -
 template<typename MSG>
 auto msg(const DebugCtx_t& _ctx, MSG _msg) -> void
 {
-		_os << "MSG![]:\n";
-		_os << _ctx << '\n';
-		_os << " |\n";
-		_os << " | " << _msg << std::endl;
-		_os << " |\n";
+	_os << "MSG![]:\n";
+	_os << _ctx << '\n';
+	_os << " |\n";
+	_os << " | " << _msg << std::endl;
+	_os << " |\n";
 }
+
+auto read_file_err(const char*) -> void;
+auto invalid_extension_err(const char*) -> void;
+auto invalid_file_err(const char*) -> void;
 
 } // namespace Logger

@@ -11,6 +11,7 @@ struct defer {
 
 	explicit defer(std::function<void(void)>&& _act)
 	: m_action(std::move(_act))
+	{}
 
 	~defer() { m_action(); }
-}
+};
