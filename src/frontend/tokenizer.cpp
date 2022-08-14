@@ -81,6 +81,12 @@ auto next_t(TokenizerCTX* _t) -> void
 
 		case STATE_START:
 			switch(_t->contents[_t->pos]) {
+					default: Logger::debug(
+					Logger::DBCTX,
+					Logger::DebugErrID::TOK_STATE_ERR,
+					"Handle all the cases idiot"
+				);
+
 				case 0:
 				case WHITESPACE_CASE:
 					goto done;
@@ -152,6 +158,7 @@ auto next_t(TokenizerCTX* _t) -> void
 						_t->tok_buf.back().offset,
 						_t->pos-1
 					);
+					_t->tok_buf.back().end = _t->pos-1;
 					_t->state = STATE_START;
 					goto skip_iter;
 
@@ -164,6 +171,17 @@ auto next_t(TokenizerCTX* _t) -> void
 	
 	done: next_c(_t); // dear god, goto... in 2022??
 	skip_iter: return;
+}
+
+auto tokenize(TokenizerCTX* _t) -> void
+{
+	while ( _t->state != STATE_EOF ) next_t(_t);
+	_t->tok_buf.emplace_back(
+		Tok::TokenEndOfFile,
+		_t->pos+1,
+		_t->line,
+		_t->col+1
+	);
 }
 
 } // namespace Tokenizer

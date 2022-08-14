@@ -24,6 +24,7 @@ enum DebugErrID_t : uint8_t {
 	UNREACHABLE_ERR,
 	TOKID_STR_ERR,
 	TOK_STATE_ERR,
+	ASTGEN_INVALID_TOK_ERR,
 	UNWRAP_ERR,
 };
 
@@ -47,6 +48,7 @@ enum CompErrID_t : uint8_t {
 	INVALID_FILE_EXTENSION_ERR,
 	UNKNOWN_FILE_ERR,
 	READ_FILE_ERR,
+	INVALID_TYPE_ERR,
 };
 
 auto to_str(const CompErrID_t) -> const char*;

@@ -4,6 +4,7 @@
 #include "../optional.hpp"
 #include "../logger.hpp"
 #include "../defer.hpp"
+#include "../todo.hpp"
 
 #include <cstring>
 #include <cstdio>
@@ -142,8 +143,6 @@ struct TokenizerCTX {
 		FILE* fd = std::fopen(_fname, "r");
 		if (!fd) Logger::invalid_file_err(_fname);
 
-		defer _( [&]{ std::fclose(fd); } );
-
 		std::fseek(fd, 0, SEEK_END);
 		if (std::ferror(fd) != 0) Logger::read_file_err(_fname);
 									 
@@ -155,19 +154,26 @@ struct TokenizerCTX {
 		
 		size_t total_read = std::fread(contents, contents_size, 1, fd);
 		if (ferror(fd) != 0) Logger::read_file_err(_fname);
+		// I get undefined behavior unless I do this, I thought fread would take care of null termination
 		contents[contents_size] = 0;
+
+		std::fclose(fd);
+		
+		// helps save on realloc calls.
+		// contents_size/4 is not the most efficient size, just an estimation
+		tok_buf.reserve(contents_size/4);
 	}
 
-	~TokenizerCTX()
-	{
-		std::free(contents);
+	~TokenizerCTX() {
+		// because tok_buf and contents need to be used during parsing
+		// they cannot be freed yet.
 	}
 };
 
 auto next_c(TokenizerCTX*) -> void;
-auto gen_t(TokenizerCTX*, const Tok::TokID, const size_t, const size_t) -> void;
+auto gen_t(TokenizerCTX*, const Tok::TokID) -> void;
 auto next_t(TokenizerCTX*) -> void;
-
+auto tokenize(TokenizerCTX*) -> void;
 
 } // namespace Tokenizer
 } // namespace Voltt

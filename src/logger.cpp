@@ -20,6 +20,7 @@ auto to_str(const DebugErrID_t _id) -> const char*
 		case UNREACHABLE_ERR: return "Encountered an unreachable condition during compilation";
 		case TOKID_STR_ERR: return "Encountered an error converting Tok::TokID to string";
 		case TOK_STATE_ERR: return "Encountered an error determining the tokenizer state";
+		case ASTGEN_INVALID_TOK_ERR: return "Encountered an unhandled token during AST generation";
 		case UNWRAP_ERR: return "Failed to unwrap a value, try being safe next time.";
 	}
 
