@@ -1,12 +1,13 @@
 #pragma once
 
+#include "logger.hpp"
 #include <functional>
 #include <utility>
 
 template<class T>
 struct Optional {
 	T data;
-	bool none;
+	bool none = true;
 
 	auto unwrap() -> T& 
 	{
@@ -44,9 +45,7 @@ struct Optional {
 		return !none;
 	}
 
-	explicit Optional()
-	: none(true) 
-	{}
+	Optional() = default;
 
 	explicit Optional(const T& _data)
 	: data(_data), none(false)

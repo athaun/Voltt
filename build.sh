@@ -5,7 +5,8 @@ echo "$CPP_FILES"
 
 set -e
 
-clang++ -g -DNDEBUG ${CPP_FILES} `llvm-config --cxxflags --ldflags --system-libs --libs core` -o voltt
+# add -DNDEBUG
+clang++ -g ${CPP_FILES} `llvm-config --cxxflags --ldflags --system-libs --libs core` -o voltt
 
 echo "RUNNING voltt"
 ./voltt

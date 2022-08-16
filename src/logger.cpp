@@ -16,8 +16,9 @@ auto to_str(const DebugErrID_t _id) -> const char*
 		default: abort();
 
 		case UNKNOWN: return "Encountered an unknown error during compilation";	
-		case TODO: return "TODO";
+		case TODO_ERR: return "TODO";
 		case UNREACHABLE_ERR: return "Encountered an unreachable condition during compilation";
+		case UNHANDLED_CASE_ERR: return "Encountered an unrecoverable conditional error";
 		case TOKID_STR_ERR: return "Encountered an error converting Tok::TokID to string";
 		case TOK_STATE_ERR: return "Encountered an error determining the tokenizer state";
 		case ASTGEN_INVALID_TOK_ERR: return "Encountered an unhandled token during AST generation";
@@ -31,7 +32,6 @@ auto to_str(const DebugErrID_t _id) -> const char*
 
 auto operator<<(std::ostream& _os, const CompCtx_t& _ctx) -> std::ostream&
 {
-	_os << "[std::ostream& << CompCtx_t NOT IMPLEMENTED]" << std::endl;
 	return _os;
 }
 
@@ -46,6 +46,8 @@ auto to_str(const CompErrID_t _id) -> const char*
 		case UNKNOWN_FILE_ERR: return "Invalid file to compile.";
 		case INVALID_FILE_EXTENSION_ERR: return "Voltt files must end in a valid extension: .vlt";
 		case READ_FILE_ERR: return "Encountered an error reading from an input file.";
+		
+		case INVALID_TYPE_ERR: return "Invalid type";
 	}
 
 	abort();
@@ -75,6 +77,11 @@ auto invalid_file_err(const char* _fname) -> void
 	_os << "  --> " << _fname << std::endl; 
 
 	exit(1);
+}
+
+auto invalid_type_err(const char* _msg) -> void
+{
+	TODO
 }
 
 } // namespace Logger

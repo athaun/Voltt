@@ -3,6 +3,7 @@
 #include "../logger.hpp"
 
 #include <cstring>
+#include <cstdint>
 
 namespace Voltt {
 namespace Tok {
@@ -14,6 +15,9 @@ enum TokID : uint8_t {
 	TokenColonInferConst,
     TokenEqSymbol,
 
+	TokenParenOpen,
+	TokenParenClose,
+
 	TokenBinOpAdd,
 	TokenBinOpSub,
 	TokenBinOpMul,
@@ -23,13 +27,25 @@ enum TokID : uint8_t {
    
 	TokenIdent,
     TokenLiteralNumeric,
+	TokenLiteralDecimal,
 
+	TokenEndStatement,
     TokenEndOfFile,
 };
 
 #define ALLOC_STR_CASE \
-	TokenIdent: \
-	case TokenLiteralNumeric \
+	Tok::TokenIdent: \
+	case Tok::TokenLiteralNumeric: \
+	case Tok::TokenLiteralDecimal
+
+#define BINOP_CASE \
+	Tok::TokenBinOpAdd: \
+	case Tok::TokenBinOpSub: \
+	case Tok::TokenBinOpMul: \
+	case Tok::TokenBinOpDiv
+
+#define VTYPES_CASE \
+	Tok::TokenTypS32
 
 struct Token {
 	TokID id;
@@ -38,6 +54,8 @@ struct Token {
 	size_t end; 
 	size_t line;
 	size_t col;
+
+	Token() = default;
 
 	explicit Token(const TokID _id, const size_t _offset, const size_t _line, const size_t _col)
 	: id(_id), offset(_offset), line(_line), col(_col), end(0)

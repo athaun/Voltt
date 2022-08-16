@@ -34,13 +34,20 @@ auto static vlt_keyword_tok(const char* _source, const size_t _start, const size
 		if (std::strncmp(_source+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str)) == 0) return VLT_KEYWORDS[i].id;
 	}
 
+	bool is_decimal = false;
 	for ( size_t i = 0; i < len; i++ ) {
 		switch(_source[_start+i]) {
 			default: return Tok::TokenIdent;
+			case '.':
+				if (!is_decimal) {
+					is_decimal = true;
+					continue;
+				}
+				Logger::unhandled_case_err("Invalid expression");
 			case DIGIT_CASE: continue;
 		}
 	}
-	return Tok::TokenLiteralNumeric;
+	return (is_decimal) ? Tok::TokenLiteralDecimal : Tok::TokenLiteralNumeric;
 }
 
 auto next_c(TokenizerCTX* _t) -> void 
@@ -70,25 +77,20 @@ auto gen_t(TokenizerCTX* _t, const Tok::TokID _id) -> void
 auto next_t(TokenizerCTX* _t) -> void
 {
 	switch (_t->state) {
-		default: Logger::debug(
-			Logger::DBCTX,
-			Logger::DebugErrID::TOK_STATE_ERR,
-			"Handle all the cases idiot"
-		);
+		default: Logger::unhandled_case_err("Failed to handle all the cases during tokenization states");
 
 		case STATE_EOF:
 			goto done;
 
 		case STATE_START:
 			switch(_t->contents[_t->pos]) {
-					default: Logger::debug(
-					Logger::DBCTX,
-					Logger::DebugErrID::TOK_STATE_ERR,
-					"Handle all the cases idiot"
-				);
+				default: Logger::unhandled_case_err("Failed to handle all cases during tokenization");
 
 				case 0:
-				case WHITESPACE_CASE:
+				case WHITESPACE_CASE: goto done;
+
+				case NEWLINE_CASE:
+					gen_t(_t, Tok::TokenEndStatement);
 					goto done;
 
 				case ':':
@@ -98,7 +100,14 @@ auto next_t(TokenizerCTX* _t) -> void
 
 				case '=':
 					gen_t(_t, Tok::TokenEqSymbol);
-					_t->state = STATE_EQ;
+					goto done;
+
+				case '(':
+					gen_t(_t, Tok::TokenParenOpen);
+					goto done;
+
+				case ')':
+					gen_t(_t, Tok::TokenParenClose);
 					goto done;
 
 				case '+':
@@ -148,7 +157,7 @@ auto next_t(TokenizerCTX* _t) -> void
 					goto done;
 			}
 
-		case STATE_IDENT:
+		case STATE_IDENT: // handles idents, keywords, and literals 
 			for (;;) {
 			switch(_t->contents[_t->pos]) {
 				case 0:
@@ -163,6 +172,7 @@ auto next_t(TokenizerCTX* _t) -> void
 					goto skip_iter;
 
 				case IDENT_ALLOWED_CASE:
+				case '.':
 					next_c(_t);
 					continue;
 			}

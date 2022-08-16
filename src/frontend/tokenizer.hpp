@@ -15,8 +15,11 @@ namespace Tokenizer {
 
 #define WHITESPACE_CASE \
 	' ': \
-	case '\r': \
-	case '\n'
+	case '\t': \
+	case '\r' \
+
+#define NEWLINE_CASE \
+	'\n'
 
 #define DIGIT_CASE \
 	'0': \
@@ -167,6 +170,7 @@ struct TokenizerCTX {
 	~TokenizerCTX() {
 		// because tok_buf and contents need to be used during parsing
 		// they cannot be freed yet.
+		// if they aren't freed at some stage during parsing, yell at me in a PR
 	}
 };
 

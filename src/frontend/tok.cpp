@@ -35,6 +35,9 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> const char*
 		case TokenColonInferMut: return ":=";
 		case TokenColonInferConst: return "::";
 		case TokenEqSymbol: return "=";
+		
+		case TokenParenOpen: return "(";
+		case TokenParenClose: return ")";
 
 		case TokenBinOpAdd: return "+";
 		case TokenBinOpSub: return "-";
@@ -43,6 +46,7 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> const char*
 
 		case TokenTypS32: return "s32";
 		
+		case TokenEndStatement: return "TokenEndStatement";
 		case TokenEndOfFile: return "TokenEndOfFile";
 
 		// In order to prevent memory leaks the result of this function must follow this pattern
@@ -59,14 +63,8 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> const char*
 			std::memcpy(result, &_source[_tok.offset], len);
 			result[len] = 0;
 			return result;
-		
 	}
-
-	Logger::debug(
-		Logger::DBCTX,
-		Logger::DebugErrID::UNREACHABLE_ERR,
-		"This wasn't supposed to happen..."
-	);
+	Logger::unreachable_err();
 }
 
 } // namespace Tok
