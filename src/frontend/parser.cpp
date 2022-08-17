@@ -51,6 +51,7 @@ auto parse(CTX* _ctx) -> void
 
 auto parse_toplevel_expr(CTX* _ctx) -> ASTNode::Node*
 {
+	if (curr_t(_ctx).id != Tok::TokenIdent) Logger::unhandled_case_err("Invalid Expression to parse at top level");
 	return parse_var_decl(_ctx); 
 }
 

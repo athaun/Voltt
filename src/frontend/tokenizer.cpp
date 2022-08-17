@@ -29,24 +29,26 @@ static const VolttKeyword VLT_KEYWORDS[] = {
 auto static vlt_keyword_tok(const char* _source, const size_t _start, const size_t _end) -> const Tok::TokID
 {
 	const size_t len = (_end-_start);
+
 	for ( size_t i = 0; i < ARR_LEN(VLT_KEYWORDS); i++ ) {
 		if (len+1 != std::strlen(VLT_KEYWORDS[i].str)) continue;
 		if (std::strncmp(_source+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str)) == 0) return VLT_KEYWORDS[i].id;
 	}
-
+	
 	bool is_decimal = false;
-	for ( size_t i = 0; i < len; i++ ) {
-		switch(_source[_start+i]) {
+	for ( size_t idx = 0; idx <= len; idx++) {
+		switch (_source[_start+idx]) {
 			default: return Tok::TokenIdent;
+
+			case DIGIT_CASE: break;
+
 			case '.':
-				if (!is_decimal) {
-					is_decimal = true;
-					continue;
-				}
-				Logger::unhandled_case_err("Invalid expression");
-			case DIGIT_CASE: continue;
+				if (is_decimal) Logger::unhandled_case_err("Invalid numeric literal");
+				is_decimal = true;
+				break;
 		}
 	}
+
 	return (is_decimal) ? Tok::TokenLiteralDecimal : Tok::TokenLiteralNumeric;
 }
 

@@ -14,6 +14,9 @@ auto main() -> int32_t
 	Tokenizer::tokenize(&tokctx);
 
 	Parser::CTX parctx(&tokctx);
+
+	assert(parctx.tok_buf[0].id == Tok::TokenIdent);
+
 	Parser::parse(&parctx);
 
 	for ( const ASTNode::Node* node : parctx.body ) ASTGen::ast_dump_node(std::cout, node);
