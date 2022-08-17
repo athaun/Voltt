@@ -1,244 +1,266 @@
 #include "parser.hpp"
-#include "tok.hpp"
 
 namespace Voltt {
 namespace Parser {
 
-auto next_t(ParserCTX* _p) -> const bool 
+auto curr_t(CTX* _ctx) -> Tok::Token&
 {
-	if (_p->tok_pos >= _p->tok_buf.size()-1) return false;
-	_p->tok_curr = _p->tok_buf[++_p->tok_pos];
-	return true;
+	return _ctx->tok_buf[_ctx->tok_pos];
 }
 
-auto next_expecting(ParserCTX* _p, const Tok::TokID _id) -> const bool
+auto next_t(CTX* _ctx) -> Tok::Token*
 {
-	if (_p->tok_pos >= _p->tok_buf.size()-1) return false;
+	if (_ctx->tok_pos+1 >= _ctx->tok_buf.size()) return nullptr;
 	
-	const Tok::Token* tok_potential = &_p->tok_buf[++_p->tok_pos];
-	if (tok_potential->id != _id) return false;
+	if (++_ctx->tok_pos >= _ctx->tok_buf.size()-1) _ctx->tok_lookahead = nullptr;
+	else _ctx->tok_lookahead = &_ctx->tok_buf[_ctx->tok_pos+1]; 			
 
-	_p->tok_curr = *tok_potential;
-	return true;
+	return &_ctx->tok_buf[_ctx->tok_pos];
 }
 
-auto peek_t(const ParserCTX* _p, const size_t _offset) -> const Optional<Tok::Token>
+auto next_expecting(CTX* _ctx, const Tok::TokID _id) -> Tok::Token*
 {
-	const size_t offset = (_p->tok_pos+_offset);
-	if (offset >= _p->tok_buf.size()-1) return Optional<Tok::Token>{};
-
-	return Optional<Tok::Token>(_p->tok_buf[offset]);
-}
-
-auto peek_expecting(const ParserCTX* _p, const size_t _offset, const Tok::TokID _id) -> const Optional<Tok::Token>
-{
-	const size_t offset = (_p->tok_pos+_offset);
-	if (offset >= _p->tok_buf.size()-1) return Optional<Tok::Token>{};
-	
-	const Tok::Token* tok_potential = &_p->tok_buf[offset];
-	if (tok_potential->id != _id) return Optional<Tok::Token>{};
-
-	return Optional<Tok::Token>(*tok_potential);
-}
-
-auto parse_primary_expr(ParserCTX* _p) -> const bool
-{
-	Tok::dump(std::cout, _p->tok_curr, _p->contents);
-	switch (_p->tok_curr.id) {
-		default: Logger::unhandled_case_err("Invalid expression at top level.");
-		
-		case Tok::TokenIdent:
-			_p->body.push_back(std::move(parse_var_decl(_p)));
-			return true;
-		
-		case Tok::TokenEndStatement:
-			next_t(_p); // consume end of statement
-			return true;
-
-		case Tok::TokenEndOfFile:
-			return false;
-	}
-
-	Logger::unreachable_err();
-	return false;
-}
-
-auto parse_expr(ParserCTX* _p) -> ASTNode::Node*
-{
-	ASTNode::Node* res;
-	switch (_p->tok_curr.id) {
-		default:
-			res = parse_addative_expr(_p);
-			break;
-
-		case Tok::TokenParenOpen:
-			res = parse_paren_expr(_p);
-			break;
-	}
-
-	switch(_p->tok_curr.id) {
-		default:
-			Logger::unhandled_case_err("Invalid end of expression");
-			return nullptr;
-
-		case Tok::TokenEndStatement:
-			next_t(_p); // consume end statement
-		
-		case Tok::TokenParenClose:
-		case Tok::TokenEndOfFile:
-			return res;
-	
-	}
-
-	Logger::unreachable_err();
+	Tok::Token* next_opt = next_t(_ctx);
+	if (next_opt != nullptr && next_opt->id == _id) return next_opt;
+	--_ctx->tok_pos;
 	return nullptr;
 }
 
-auto parse_paren_expr(ParserCTX* _p) -> ASTNode::Node*
+auto peek_expecting(CTX* _ctx, const Tok::TokID _id) -> const bool
 {
-	next_t(_p); // consume '('
-	ASTNode::Node* expr = parse_expr(_p);
-	next_t(_p); // consume ')' ERROR CASE
-	
+	return (_ctx->tok_lookahead != nullptr && _ctx->tok_lookahead->id == _id) ? true : false;
+}
+
+auto alloc_node() -> ASTNode::Node*
+{
+	return (ASTNode::Node*)std::malloc(sizeof(ASTNode::Node));
+}
+
+auto parse(CTX* _ctx) -> void
+{
+	for (;;) {
+		if (curr_t(_ctx).id == Tok::TokenEndOfFile) return;
+		ASTNode::Node* node = parse_toplevel_expr(_ctx);
+		
+		if (node == nullptr) return;
+		next_t(_ctx); // consume EndOfStatement
+		
+		_ctx->body.emplace_back(std::move(node));
+	}
+}
+
+auto parse_toplevel_expr(CTX* _ctx) -> ASTNode::Node*
+{
+	return parse_var_decl(_ctx); 
+}
+
+auto parse_expr(CTX* _ctx) -> ASTNode::Node*
+{
+	return parse_addative_expr(_ctx);
+}
+
+auto parse_primary_expr(CTX* _ctx) -> ASTNode::Node*
+{
+	switch (curr_t(_ctx).id) {
+		case Tok::TokenParenOpen: 
+			return parse_paren_expr(_ctx);
+
+		case Tok::TokenIdent:
+			return parse_ident(_ctx);
+
+		default:
+			return parse_literal(_ctx);
+	}
+}
+
+auto parse_paren_expr(CTX* _ctx) -> ASTNode::Node*
+{
+	next_t(_ctx); // consume '('
+	ASTNode::Node* expr = parse_expr(_ctx);
+	next_t(_ctx); // consume ')' ERROR CASE
 	return expr;
 }
 
-auto parse_addative_expr(ParserCTX* _p) -> ASTNode::Node*
+auto parse_multiplicative_expression(CTX* _ctx) -> ASTNode::Node*
 {
-	ASTNode::Node* left = parse_literal_numeric(_p); 
-	
+	ASTNode::Node* left = parse_primary_expr(_ctx);
+
 	for (;;) {
-	switch (_p->tok_curr.id) {
-		default: goto addative_recurse_end;
-			
-		case BINOP_CASE:
+		
+	const Tok::Token op = curr_t(_ctx);
+	switch (op.id) {
+		default:
+			goto multiplicative_recurse_end; 
+		case Tok::TokenBinOpMul:
+		case Tok::TokenBinOpDiv:
+			next_t(_ctx); // consume operator
 
-			const Tok::TokID op = _p->tok_curr.id;
-				
-			next_t(_p); // consume literal ERROR CASE
-			ASTNode::Node* right = parse_literal_numeric(_p);
+			ASTNode::Node* right = parse_primary_expr(_ctx);
 
-			ASTNode::Node* new_left = (ASTNode::Node*)std::malloc(sizeof(ASTNode::Node));
-				
+			ASTNode::Node* new_left = alloc_node();
 			new_left->type = ASTNode::TypeExprBinary;
-			new_left->data.expr_binary_data.op = op;
+			new_left->data.expr_binary_data.op = op.id;
 			new_left->data.expr_binary_data.left = left;
 			new_left->data.expr_binary_data.right = right;
-				
+
+			left = new_left;
+	}
+	}	
+
+	multiplicative_recurse_end:
+
+	return left;
+}
+
+auto parse_addative_expr(CTX* _ctx) -> ASTNode::Node*
+{
+	ASTNode::Node* left = parse_multiplicative_expression(_ctx);
+	for (;;) {
+	
+	const Tok::Token op = curr_t(_ctx);
+	switch (op.id) {
+		default: goto addative_recurse_end; 
+		case Tok::TokenBinOpAdd:
+		case Tok::TokenBinOpSub:
+			next_t(_ctx); // consume operator
+
+			ASTNode::Node* right = parse_multiplicative_expression(_ctx);
+
+			ASTNode::Node* new_left = alloc_node();
+			new_left->type = ASTNode::TypeExprBinary;
+			new_left->data.expr_binary_data.op = op.id;
+			new_left->data.expr_binary_data.left = left;
+			new_left->data.expr_binary_data.right = right;
+
 			left = new_left;
 	}
 	}
 
 	addative_recurse_end:
+
 	return left;
 }
 
-auto parse_literal(ParserCTX* _p) -> ASTNode::Node*
+auto parse_var_decl(CTX* _ctx) -> ASTNode::Node*
 {
-	switch(_p->tok_curr.id) {
-		default: Logger::unhandled_case_err("Expected a literal");
+	ASTNode::Node* variable = alloc_node();
+	variable->type = ASTNode::TypeVariableDecl;
+	variable->data.variable_decl_data.ident = parse_ident(_ctx);
+
+	switch (curr_t(_ctx).id) {
+		default: Logger::unhandled_case_err("Expected a ':'");
 		
-		case Tok::TokenLiteralNumeric:
-		case Tok::TokenLiteralDecimal:
-			return parse_literal_numeric(_p);
+		case Tok::TokenColonSymbol: 
+			next_t(_ctx); // consume ':'
+			variable->data.variable_decl_data.type = parse_type(_ctx);
+
+			switch (curr_t(_ctx).id) {
+				default: Logger::unhandled_case_err("Expected a ':' or '='");
+				
+				case Tok::TokenEqSymbol:
+					variable->data.variable_decl_data.is_const = false;
+					break;
+
+				case Tok::TokenColonSymbol:
+					variable->data.variable_decl_data.is_const = true;
+					break;
+			}
+
+			next_t(_ctx);
+			break;
+
+		case Tok::TokenColonInferConst:
+			variable->data.variable_decl_data.is_const = true;
+			variable->data.variable_decl_data.type = nullptr;
+			next_t(_ctx);
+			break;
+
+		case Tok::TokenColonInferMut:
+			variable->data.variable_decl_data.is_const = false;
+			variable->data.variable_decl_data.type = nullptr;
+			next_t(_ctx);
+			break;
+	}
+
+	variable->data.variable_decl_data.expr = parse_expr(_ctx);
+
+	return variable;
+}
+
+auto parse_type(CTX* _ctx) -> ASTNode::Node*
+{
+	switch (curr_t(_ctx).id) {
+		default: Logger::unhandled_case_err("Expected a valid type Identifier");
+		
+		case VTYPES_CASE:
+		case Tok::TokenIdent:
+			ASTNode::Node* type = alloc_node();
+			type->type = ASTNode::TypeTy;
+			type->data.ty_data.ty = parse_ident(_ctx);
+
+			return type;
 	}
 
 	Logger::unreachable_err();
 	return nullptr;
 }
 
-auto parse_literal_numeric(ParserCTX* _p) -> ASTNode::Node* 
+auto parse_literal(CTX* _ctx) -> ASTNode::Node*
 {
-	ASTNode::Node* num = (ASTNode::Node*)std::malloc(sizeof(ASTNode::Node));
-	const char* literal_word = Tok::to_str(_p->tok_curr, _p->contents);
-	
-	switch(_p->tok_curr.id) {
+	switch (curr_t(_ctx).id) {
 		default:
-			Logger::unreachable_err();
+			Logger::unhandled_case_err("Expected a literal");
 			return nullptr;
-
-		case Tok::TokenLiteralNumeric:
-			num->type = ASTNode::TypeLiteralNumeric;
-			num->data.literal_numeric_data = ASTNode::NodeLiteralNumeric{
-				.value = std::stoi(literal_word),
-			};
-			
-			break;
-
-		case Tok::TokenLiteralDecimal:
-			num->type = ASTNode::TypeLiteralDeciamal;
-			num->data.literal_decimal_data = ASTNode::NodeLiteralDecimal{
-				.value = std::stod(literal_word),
-			};
-
-			break;
+	
+		case Tok::TokenLiteralNumeric: return parse_literal_numeric(_ctx);
+		case Tok::TokenLiteralDecimal: return parse_literal_decimal(_ctx);
+	
 	}
-
-	std::free((void*)literal_word);
-
-	next_t(_p); // consume numeric literal
-
-	return num;
+	
+	Logger::unreachable_err();
+	return nullptr;
 }
 
-auto parse_ident_decl(ParserCTX* _p) -> ASTNode::Node*
+auto parse_literal_numeric(CTX* _ctx) -> ASTNode::Node*
 {
-	ASTNode::Node* ident = (ASTNode::Node*)std::malloc(sizeof(ASTNode::Node));
-	ident->type = ASTNode::TypeIdent;
-	ident->data.ident_data.raw = Tok::to_str(_p->tok_curr, _p->contents);
-
-	next_t(_p); // consume ident
+	ASTNode::Node* literal_numeric = alloc_node();
+	literal_numeric->type = ASTNode::TypeLiteralNumeric;
 	
+	const char* literal_numeric_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
+
+	literal_numeric->data.literal_numeric_data.value = std::stoi(literal_numeric_raw);
+	next_t(_ctx);
+
+	std::free((void*)literal_numeric_raw);
+
+	return literal_numeric;
+}
+
+auto parse_literal_decimal(CTX* _ctx) -> ASTNode::Node*
+{
+	ASTNode::Node* literal_decimal = alloc_node();
+	literal_decimal->type = ASTNode::TypeLiteralDeciamal;
+
+	const char* literal_decimal_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
+
+	literal_decimal->data.literal_decimal_data.value = std::stold(literal_decimal_raw);
+	next_t(_ctx);
+
+	std::free((void*)literal_decimal_raw);
+	
+	return literal_decimal;
+}
+
+auto parse_ident(CTX* _ctx) -> ASTNode::Node*
+{
+	ASTNode::Node* ident = alloc_node();
+	ident->type = ASTNode::TypeIdent;
+	ident->data.ident_data.raw = Tok::to_str(curr_t(_ctx), _ctx->contents); 
+
+	next_t(_ctx);
+
 	return ident;
 }
 
-auto parse_type(ParserCTX* _p) -> ASTNode::Node*
-{
-	switch (_p->tok_curr.id) {
-		default:
-			Logger::unhandled_case_err("Invalid type");
-			return nullptr;
-
-		case VTYPES_CASE:
-			return parse_ident_decl(_p);
-	}
-
-	Logger::unreachable_err();
-	return nullptr;
-}
-
-auto parse_var_decl(ParserCTX* _p) -> ASTNode::Node*
-{
-	ASTNode::Node* variable = (ASTNode::Node*)std::malloc(sizeof(ASTNode::Node));
-	variable->type = ASTNode::TypeVariableDecl;
-
-	Optional<Tok::Token> peek_opt = peek_expecting(_p, 1, Tok::TokenColonSymbol);
-	if (peek_opt.none) Logger::unhandled_case_err("Expected ':'");	
-	
-	variable->data.variable_decl_data.ident = parse_ident_decl(_p);
-	next_t(_p); // consume ':'
-	variable->data.variable_decl_data.type = parse_type(_p);
-
-	switch (_p->tok_curr.id) {
-		default:
-			Logger::unhandled_case_err("Expected ':' or '='");
-			return nullptr;
-
-		case Tok::TokenColonSymbol:
-			break;
-		
-		case Tok::TokenEqSymbol:
-			variable->data.variable_decl_data.is_const = false;
-			break;
-	}
-
-	next_t(_p); // consume expr
-	variable->data.variable_decl_data.expr = parse_expr(_p);
-
-	return variable;
-
-	Logger::unreachable_err();
-}
-
-} // namespace Voltt
 } // namespace Parser
+} // namespace Voltt

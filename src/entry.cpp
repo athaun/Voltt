@@ -1,4 +1,5 @@
 #include "frontend/tokenizer.hpp"
+#include "frontend/astgen.hpp"
 #include "frontend/parser.hpp"
 #include "logger.hpp"
 
@@ -12,9 +13,10 @@ auto main() -> int32_t
 	Tokenizer::TokenizerCTX tokctx("test.vlt");
 	Tokenizer::tokenize(&tokctx);
 
-	Parser::ParserCTX parctx(&tokctx);
+	Parser::CTX parctx(&tokctx);
+	Parser::parse(&parctx);
 
-	while (Parser::parse_primary_expr(&parctx));
+	for ( const ASTNode::Node* node : parctx.body ) ASTGen::ast_dump_node(std::cout, node);
 
 	return 0;
 }

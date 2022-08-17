@@ -1,94 +1,130 @@
 #pragma once
 
-#include "../optional.hpp"
 #include "tokenizer.hpp"
 #include "astnode.hpp"
-#include "../todo.hpp"
-
-#include <map>
+#include "astgen.hpp"
 
 namespace Voltt {
 namespace Parser {
 
-struct ParserCTX {
+struct CTX;
+
+auto curr_t(CTX*) -> Tok::Token&;
+auto next_t(CTX*) -> Tok::Token*;
+auto next_expecting(CTX, const Tok::TokID) -> Tok::Token*;
+auto peek_expecting(CTX, const Tok::TokID) -> const bool;
+
+auto alloc_node() -> ASTNode::Node*;
+
+auto parse(CTX*) -> void;
+
+auto parse_toplevel_expr(CTX*) -> ASTNode::Node*;
+
+/*
+ * Expression
+*/
+auto parse_expr(CTX*) -> ASTNode::Node*;
+
+/*
+ * PrimaryExpression
+ *	: Literal
+ *	| Parenthasized Expression
+ *	;
+*/
+auto parse_primary_expr(CTX*) -> ASTNode::Node*;
+
+/*
+ * Parenthasized Expression
+ *	: '(' Expression ')'
+ *	;
+*/
+auto parse_paren_expr(CTX*) -> ASTNode::Node*;
+
+/*
+ * Literal
+ *	: Integer Literal
+ *	| Decimal Literal
+ *	;
+*/
+auto parse_literal(CTX*) -> ASTNode::Node*;
+
+/*
+ * Type
+ *	: Ident -> ...
+ *	;
+*/
+auto parse_type(CTX*) -> ASTNode::Node*;
+
+/*
+ * Literal Numeric
+ *	: Integer Literal
+ *	| Decimal Literal
+ *	;
+*/
+auto parse_literal_numeric(CTX*) -> ASTNode::Node*;
+
+/*
+ * Literal Numeric
+ *	: Integer Literal
+ *	| Decimal Literal
+ *	;
+*/
+auto parse_literal_decimal(CTX*) -> ASTNode::Node*;
+
+/*
+ * Ident
+ *	;
+*/
+auto parse_ident(CTX*) -> ASTNode::Node*;
+
+/*
+ * Multiplicative Expression
+ *	: Multiplicative Expression Operator Multiplicative Expression -> ...
+*/
+
+auto parse_multiplicative_expression(CTX*) -> ASTNode::Node*;
+
+/*
+ * Addative Expression
+ *  : Multiplicative Expression
+ *	| Addative Expression Operator Multiplicative Expression <|> AddativeExpression -> ...
+ *	;
+*/
+auto parse_addative_expr(CTX*) -> ASTNode::Node*;
+
+/*
+ * Variable Declaration
+ *	: Variable -> Ident -> Type -> Expression
+ *	;
+*/ 
+auto parse_var_decl(CTX*) -> ASTNode::Node*;
+
+struct CTX {
 	size_t tok_pos;
-	Tok::Token tok_curr;
+	Tok::Token* tok_lookahead;
+
 	std::vector<Tok::Token> tok_buf;
 	std::vector<ASTNode::Node*> body;
+
+	const char* fname;
 	const char* contents;
 
-	ParserCTX(const Tokenizer::TokenizerCTX* _t)
-	: tok_pos(0), tok_curr(_t->tok_buf[tok_pos]), tok_buf(std::move(_t->tok_buf)), contents(std::move(_t->contents))
-	{}
-
-	~ParserCTX()
+	CTX(Tokenizer::TokenizerCTX* _t)
+	: tok_pos(0),
+		tok_buf(std::move(_t->tok_buf)),
+		fname(_t->fname),
+		contents(std::move(_t->contents))
 	{
+		tok_lookahead = &tok_buf[1];
+	}
+
+	~CTX()
+	{
+		tok_lookahead = nullptr;
 		std::free((void*)contents);
 	}
 };
 
-auto next_t(ParserCTX*) -> const bool;
-auto next_expecting(ParserCTX*, const Tok::TokID) -> const bool;
-auto peek_t(const ParserCTX*, const size_t) -> const Optional<Tok::Token>;
-auto peek_expecting(const ParserCTX*, const size_t, const Tok::TokID) -> const Optional<Tok::Token>;
-
-/*
- * Expression
- *	: Literal
- *	: VariableDecl
- *	| ParenExpr
-*/
-auto parse_primary_expr(ParserCTX*) -> const bool;
-
-/*
- * Expression
- *	: AddativeExpression
-*/
-auto parse_expr(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * ParenExpr
- *	: ( Expression )
- */
-auto parse_paren_expr(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * Addative Expression
- *	: Literal
- *	| AddativeExpression Operator Literal -> Literal Operator Literal Operator Literal
- *	;
-*/
-auto parse_addative_expr(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * Expression
- *	: Literal
- *	;
-*/
-auto parse_literal(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * Expression
- *	: NumericLiteral
- *	;
-*/
-auto parse_literal_numeric(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * Ident
-*/
-auto parse_ident_decl(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * Type
-*/
-auto parse_type(ParserCTX*) -> ASTNode::Node*;
-
-/*
- * VariableDeclaration
- *	: Ident -> Type -> Expr
-*/
-auto parse_var_decl(ParserCTX*) -> ASTNode::Node*;
 
 } // namespace Parser
 } // namespace Voltt
