@@ -43,7 +43,14 @@ auto parse(CTX* _ctx) -> void
 		ASTNode::Node* node = parse_toplevel_expr(_ctx);
 		
 		if (node == nullptr) return;
-		next_t(_ctx); // consume EndOfStatement
+		switch (curr_t(_ctx).id) {
+			default: Logger::unhandled_case_err("Expressions must end with a newline");
+			
+			case Tok::TokenParenClose: Logger::unhandled_case_err("Unmatched '('");
+
+			case Tok::TokenEndStatement: next_t(_ctx); // consume EndOfStatement
+		}
+
 		
 		_ctx->body.emplace_back(std::move(node));
 	}
@@ -77,9 +84,23 @@ auto parse_primary_expr(CTX* _ctx) -> ASTNode::Node*
 auto parse_paren_expr(CTX* _ctx) -> ASTNode::Node*
 {
 	next_t(_ctx); // consume '('
-	ASTNode::Node* expr = parse_expr(_ctx);
-	next_t(_ctx); // consume ')' ERROR CASE
-	return expr;
+	switch (curr_t(_ctx).id) {
+
+		case Tok::TokenParenClose: // empty paren case
+			next_t(_ctx); // consume ')'
+			return parse_expr(_ctx);
+
+		default: // filled paren case 
+			ASTNode::Node* expr = parse_expr(_ctx);
+			switch (curr_t(_ctx).id) {
+		
+				default: Logger::unhandled_case_err("Unmatched ')'");
+				
+				case Tok::TokenParenClose: next_t(_ctx); // consume ')'
+			}
+
+			return expr;
+	}
 }
 
 auto parse_multiplicative_expression(CTX* _ctx) -> ASTNode::Node*
@@ -100,6 +121,7 @@ auto parse_multiplicative_expression(CTX* _ctx) -> ASTNode::Node*
 
 			ASTNode::Node* new_left = alloc_node();
 			new_left->type = ASTNode::TypeExprBinary;
+			new_left->tok = std::move(curr_t(_ctx));
 			new_left->data.expr_binary_data.op = op.id;
 			new_left->data.expr_binary_data.left = left;
 			new_left->data.expr_binary_data.right = right;
@@ -129,6 +151,7 @@ auto parse_addative_expr(CTX* _ctx) -> ASTNode::Node*
 
 			ASTNode::Node* new_left = alloc_node();
 			new_left->type = ASTNode::TypeExprBinary;
+			new_left->tok = std::move(curr_t(_ctx));
 			new_left->data.expr_binary_data.op = op.id;
 			new_left->data.expr_binary_data.left = left;
 			new_left->data.expr_binary_data.right = right;
@@ -146,6 +169,7 @@ auto parse_var_decl(CTX* _ctx) -> ASTNode::Node*
 {
 	ASTNode::Node* variable = alloc_node();
 	variable->type = ASTNode::TypeVariableDecl;
+	variable->tok = std::move(curr_t(_ctx));
 	variable->data.variable_decl_data.ident = parse_ident(_ctx);
 
 	switch (curr_t(_ctx).id) {
@@ -197,6 +221,7 @@ auto parse_type(CTX* _ctx) -> ASTNode::Node*
 		case Tok::TokenIdent:
 			ASTNode::Node* type = alloc_node();
 			type->type = ASTNode::TypeTy;
+			type->tok = std::move(curr_t(_ctx));
 			type->data.ty_data.ty = parse_ident(_ctx);
 
 			return type;
@@ -226,6 +251,7 @@ auto parse_literal_numeric(CTX* _ctx) -> ASTNode::Node*
 {
 	ASTNode::Node* literal_numeric = alloc_node();
 	literal_numeric->type = ASTNode::TypeLiteralNumeric;
+	literal_numeric->tok = std::move(curr_t(_ctx));
 	
 	const char* literal_numeric_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
 
@@ -241,6 +267,7 @@ auto parse_literal_decimal(CTX* _ctx) -> ASTNode::Node*
 {
 	ASTNode::Node* literal_decimal = alloc_node();
 	literal_decimal->type = ASTNode::TypeLiteralDeciamal;
+	literal_decimal->tok = std::move(curr_t(_ctx));
 
 	const char* literal_decimal_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
 
@@ -256,6 +283,7 @@ auto parse_ident(CTX* _ctx) -> ASTNode::Node*
 {
 	ASTNode::Node* ident = alloc_node();
 	ident->type = ASTNode::TypeIdent;
+	ident->tok = std::move(curr_t(_ctx));
 	ident->data.ident_data.raw = Tok::to_str(curr_t(_ctx), _ctx->contents); 
 
 	next_t(_ctx);

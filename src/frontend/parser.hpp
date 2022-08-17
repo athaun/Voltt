@@ -122,6 +122,9 @@ struct CTX {
 	{
 		tok_lookahead = nullptr;
 		std::free((void*)contents);
+
+		for ( ASTNode::Node* node : body ) ASTGen::ast_free_node(node);
+		body[0] = nullptr;
 	}
 };
 

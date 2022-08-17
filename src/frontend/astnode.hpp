@@ -57,6 +57,7 @@ struct NodeIdent {
 
 struct Node {
 	NodeType type;
+	Tok::Token tok;
 
 	union {
 		NodeLiteralNumeric literal_numeric_data;

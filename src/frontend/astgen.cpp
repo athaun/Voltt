@@ -3,6 +3,47 @@
 namespace Voltt {
 namespace ASTGen {
 
+auto ast_free_node(ASTNode::Node* _node) -> void
+{
+	if (_node == nullptr) return;
+	switch (_node->type) {
+		default: Logger::unhandled_case_err("Invalid node to free"); 
+
+		case ASTNode::TypeExprBinary:
+			ast_free_node(_node->data.expr_binary_data.left);
+			ast_free_node(_node->data.expr_binary_data.right);
+			goto node_free;
+
+		case ASTNode::TypeLiteralNumeric:
+			goto node_free;
+
+		case ASTNode::TypeLiteralDeciamal:
+			goto node_free;
+
+		case ASTNode::TypeIdent:
+			switch (_node->tok.id) {
+				case ALLOC_STR_CASE: std::free((void*)_node->data.ident_data.raw);
+				
+				default: goto node_free;
+			}
+
+		case ASTNode::TypeTy:
+			ast_free_node(_node->data.ty_data.ty);
+			goto node_free;
+
+		case ASTNode::TypeVariableDecl:
+			ast_free_node(_node->data.variable_decl_data.ident);
+			ast_free_node(_node->data.variable_decl_data.type);
+			ast_free_node(_node->data.variable_decl_data.expr);
+			goto node_free;
+	}
+	
+	node_free:
+
+	std::free((void*)_node);
+	return;
+}
+
 auto ast_dump_node_indent(std::ostream& _os, size_t _level) -> void
 {
 	_level *= 2;
