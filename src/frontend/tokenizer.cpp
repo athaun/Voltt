@@ -1,4 +1,3 @@
-
 #include "tokenizer.hpp"
 
 namespace Voltt {
@@ -26,24 +25,34 @@ static const VolttKeyword VLT_KEYWORDS[] = {
 	{"s32", Tok::TokenTypS32},
 };
 
-auto static vlt_keyword_tok(const char* _source, const size_t _start, const size_t _end) -> const Tok::TokID
+auto vlt_keyword_tok(const TokenizerCTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
 {
 	const size_t len = (_end-_start);
 
 	for ( size_t i = 0; i < ARR_LEN(VLT_KEYWORDS); i++ ) {
 		if (len+1 != std::strlen(VLT_KEYWORDS[i].str)) continue;
-		if (std::strncmp(_source+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str)) == 0) return VLT_KEYWORDS[i].id;
+		if (std::strncmp(_ctx->contents+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str)) == 0) return VLT_KEYWORDS[i].id;
 	}
 	
 	bool is_decimal = false;
 	for ( size_t idx = 0; idx <= len; idx++) {
-		switch (_source[_start+idx]) {
+		switch (_ctx->contents[_start+idx]) {
 			default: return Tok::TokenIdent;
 
 			case DIGIT_CASE: break;
 
 			case '.':
-				if (is_decimal) Logger::unhandled_case_err("Invalid numeric literal");
+				if (is_decimal) { 
+					Logger::cmperr(
+						Tok::dump_errctx(
+							_ctx->tok_buf.back(),
+							_ctx->contents,
+							_ctx->fname
+						),
+						Logger::CompErrID::INVALID_DECIMAL_FORMAT
+					);
+				}
+
 				is_decimal = true;
 				break;
 		}
@@ -142,7 +151,7 @@ auto next_t(TokenizerCTX* _t) -> void
 
 				case ':':
 					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t->contents,
+						_t,
 						_t->tok_buf.back().offset,
 						_t->pos
 					); 
@@ -151,7 +160,7 @@ auto next_t(TokenizerCTX* _t) -> void
 
 				case '=':
 					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t->contents,
+						_t,
 						_t->tok_buf.back().offset,
 						_t->pos
 					);
@@ -165,7 +174,7 @@ auto next_t(TokenizerCTX* _t) -> void
 				case 0:
 				default:
 					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t->contents,
+						_t,
 						_t->tok_buf.back().offset,
 						_t->pos-1
 					);

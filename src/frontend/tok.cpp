@@ -21,7 +21,27 @@ auto dump(std::ostream& _os, const Token& _tok, const char* _source) -> void
 	}
 }
 
-auto to_str(const Tok::Token& _tok, const char* _source) -> const char*
+auto dump_errctx(const Tok::Token& _tok, const char* _source, const char* _fname) -> Logger::CompCtx_t
+{
+	size_t line_start = _tok.offset;
+	size_t line_end = _tok.end;
+
+	for (;;) if (line_start <= 0 || _source[--line_start] == '\n') break;
+
+	for (;;) if (line_end >= strlen(_source) || _source[++line_end] == '\n') break;
+
+	return Logger::CompCtx_t{
+		.m_start = _tok.offset,
+		.m_end = _tok.end,
+		.m_line_start = line_start,
+		.m_line_end = line_end,
+		.m_line = _tok.line-1,
+		.m_fname = _fname,
+		.m_fd_contents = _source,
+	};
+}
+
+auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 {
 	switch(_tok.id) {
 		default: 
@@ -51,7 +71,7 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> const char*
 
 		// In order to prevent memory leaks the result of this function must follow this pattern
 		// switch (Tok::Token.id) {
-		//	  case Tok::ALLOC_STR_CASE: std::free((void*)word);
+		//	  case Tok::ALLOC_STR_CASE: std::free((char*)word);
 		//	  default break;
 		// }
 		// This solution is hacky, but it can greatly reduce the amount of allocations and copies.

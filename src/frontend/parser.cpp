@@ -46,20 +46,39 @@ auto parse(CTX* _ctx) -> void
 		switch (curr_t(_ctx).id) {
 			default: Logger::unhandled_case_err("Expressions must end with a newline");
 			
-			case Tok::TokenParenClose: Logger::unhandled_case_err("Unmatched '('");
+			case Tok::TokenParenClose:
+				Logger::cmperr(
+					Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+					Logger::CompErrID::UNMATCHED_OPEN_PAREN
+				);
 
 			case Tok::TokenEndStatement: next_t(_ctx); // consume EndOfStatement
 		}
 
-		
 		_ctx->body.emplace_back(std::move(node));
 	}
 }
 
 auto parse_toplevel_expr(CTX* _ctx) -> ASTNode::Node*
 {
-	if (curr_t(_ctx).id != Tok::TokenIdent) Logger::unhandled_case_err("Invalid Expression to parse at top level");
-	return parse_var_decl(_ctx); 
+	switch(curr_t(_ctx).id) {
+
+		case Tok::TokenEndStatement:
+			next_t(_ctx); // consume EndOfStatement
+			return parse_toplevel_expr(_ctx);
+		
+		case Tok::TokenEndOfFile: return nullptr;
+
+		case Tok::TokenIdent: return parse_var_decl(_ctx); 
+		
+		default:
+			Logger::cmperr(
+				Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+				Logger::CompErrID::INVALID_TOPLEVEL_EXPR
+			);
+	}
+
+	return nullptr;
 }
 
 auto parse_expr(CTX* _ctx) -> ASTNode::Node*
@@ -76,8 +95,18 @@ auto parse_primary_expr(CTX* _ctx) -> ASTNode::Node*
 		case Tok::TokenIdent:
 			return parse_ident(_ctx);
 
+		case Tok::TokenLiteralNumeric:
+			return parse_literal_numeric(_ctx);
+
+		case Tok::TokenLiteralDecimal:
+			return parse_literal_decimal(_ctx);
+	
 		default:
-			return parse_literal(_ctx);
+			Logger::cmperr(
+				Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+				Logger::CompErrID::EXPECTED_EXPRESSION
+			);
+			return nullptr;
 	}
 }
 
@@ -94,7 +123,12 @@ auto parse_paren_expr(CTX* _ctx) -> ASTNode::Node*
 			ASTNode::Node* expr = parse_expr(_ctx);
 			switch (curr_t(_ctx).id) {
 		
-				default: Logger::unhandled_case_err("Unmatched ')'");
+				default:
+					Logger::cmperr(
+						Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+						Logger::CompErrID::UNMATCHED_CLOSE_PAREN
+					);
+					return nullptr;
 				
 				case Tok::TokenParenClose: next_t(_ctx); // consume ')'
 			}
@@ -173,14 +207,24 @@ auto parse_var_decl(CTX* _ctx) -> ASTNode::Node*
 	variable->data.variable_decl_data.ident = parse_ident(_ctx);
 
 	switch (curr_t(_ctx).id) {
-		default: Logger::unhandled_case_err("Expected a ':'");
-		
+		default:
+			Logger::cmperr(
+				Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+				Logger::CompErrID::EXPECTED_DECLARATION
+			);
+			return nullptr;
+
 		case Tok::TokenColonSymbol: 
 			next_t(_ctx); // consume ':'
 			variable->data.variable_decl_data.type = parse_type(_ctx);
 
 			switch (curr_t(_ctx).id) {
-				default: Logger::unhandled_case_err("Expected a ':' or '='");
+				default:
+					Logger::cmperr(
+						Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+						Logger::CompErrID::EXPECTED_EQ
+					);
+					return nullptr;
 				
 				case Tok::TokenEqSymbol:
 					variable->data.variable_decl_data.is_const = false;
@@ -215,7 +259,12 @@ auto parse_var_decl(CTX* _ctx) -> ASTNode::Node*
 auto parse_type(CTX* _ctx) -> ASTNode::Node*
 {
 	switch (curr_t(_ctx).id) {
-		default: Logger::unhandled_case_err("Expected a valid type Identifier");
+		default:
+			Logger::cmperr(
+				Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+				Logger::CompErrID::INVALID_TYPE_IDENTIFIER
+			);
+			return nullptr;
 		
 		case VTYPES_CASE:
 		case Tok::TokenIdent:
@@ -235,7 +284,10 @@ auto parse_literal(CTX* _ctx) -> ASTNode::Node*
 {
 	switch (curr_t(_ctx).id) {
 		default:
-			Logger::unhandled_case_err("Expected a literal");
+			Logger::cmperr(
+				Tok::dump_errctx(curr_t(_ctx), _ctx->contents, _ctx->fname),
+				Logger::CompErrID::EXPECTED_LITERAL
+			);
 			return nullptr;
 	
 		case Tok::TokenLiteralNumeric: return parse_literal_numeric(_ctx);
@@ -253,12 +305,12 @@ auto parse_literal_numeric(CTX* _ctx) -> ASTNode::Node*
 	literal_numeric->type = ASTNode::TypeLiteralNumeric;
 	literal_numeric->tok = std::move(curr_t(_ctx));
 	
-	const char* literal_numeric_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
+	char const* literal_numeric_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
 
 	literal_numeric->data.literal_numeric_data.value = std::stoi(literal_numeric_raw);
 	next_t(_ctx);
 
-	std::free((void*)literal_numeric_raw);
+	std::free((char*)literal_numeric_raw);
 
 	return literal_numeric;
 }
@@ -269,12 +321,12 @@ auto parse_literal_decimal(CTX* _ctx) -> ASTNode::Node*
 	literal_decimal->type = ASTNode::TypeLiteralDeciamal;
 	literal_decimal->tok = std::move(curr_t(_ctx));
 
-	const char* literal_decimal_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
+	char const* literal_decimal_raw = Tok::to_str(curr_t(_ctx), _ctx->contents);
 
 	literal_decimal->data.literal_decimal_data.value = std::stold(literal_decimal_raw);
 	next_t(_ctx);
 
-	std::free((void*)literal_decimal_raw);
+	std::free((char*)literal_decimal_raw);
 	
 	return literal_decimal;
 }

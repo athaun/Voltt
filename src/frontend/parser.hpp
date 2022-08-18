@@ -58,15 +58,13 @@ auto parse_type(CTX*) -> ASTNode::Node*;
 /*
  * Literal Numeric
  *	: Integer Literal
- *	| Decimal Literal
  *	;
 */
 auto parse_literal_numeric(CTX*) -> ASTNode::Node*;
 
 /*
  * Literal Numeric
- *	: Integer Literal
- *	| Decimal Literal
+ *	: Decimal Literal
  *	;
 */
 auto parse_literal_decimal(CTX*) -> ASTNode::Node*;
@@ -121,7 +119,12 @@ struct CTX {
 	~CTX()
 	{
 		tok_lookahead = nullptr;
+		
+		//std::free((void*)fname);
+		fname = nullptr;
+
 		std::free((void*)contents);
+		contents = nullptr;
 
 		for ( ASTNode::Node* node : body ) ASTGen::ast_free_node(node);
 		body[0] = nullptr;

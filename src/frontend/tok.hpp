@@ -62,8 +62,9 @@ struct Token {
 	{}
 };
 
-auto to_str(const Token&, const char*) -> const char*;
 auto dump(std::ostream&, const Token&, const char*) -> void; 
+auto dump_errctx(const Token&, const char*, const char*) -> Logger::CompCtx_t;
+auto to_str(const Token&, const char*) -> const char*;
 
 } // namespace Tok
 } // namespace Voltt

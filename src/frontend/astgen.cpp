@@ -22,7 +22,7 @@ auto ast_free_node(ASTNode::Node* _node) -> void
 
 		case ASTNode::TypeIdent:
 			switch (_node->tok.id) {
-				case ALLOC_STR_CASE: std::free((void*)_node->data.ident_data.raw);
+				case ALLOC_STR_CASE: std::free((char*)_node->data.ident_data.raw);
 				
 				default: goto node_free;
 			}
@@ -40,7 +40,7 @@ auto ast_free_node(ASTNode::Node* _node) -> void
 	
 	node_free:
 
-	std::free((void*)_node);
+	std::free(_node);
 	return;
 }
 

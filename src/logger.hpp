@@ -1,7 +1,5 @@
 #pragma once
 
-#include "todo.hpp"
-
 #include <iostream>
 #include <ostream>
 #include <cstdint>
@@ -37,8 +35,11 @@ auto to_str(const DebugErrID_t) -> const char*;
 } // namespace DebugErrID
 
 struct CompCtx_t {
-	const uint32_t m_line_before_start;
-	const uint32_t m_line_after_end;
+	const size_t m_start;
+	const size_t m_end;
+	const size_t m_line_start;
+	const size_t m_line_end;
+	const size_t m_line;
 	const char* m_fname;
 	const char* m_fd_contents;
 };
@@ -51,10 +52,23 @@ enum CompErrID_t : uint8_t {
 	INVALID_FILE_EXTENSION_ERR,
 	UNKNOWN_FILE_ERR,
 	READ_FILE_ERR,
-	INVALID_TYPE_ERR,
+
+	INVALID_DECIMAL_FORMAT,
+	INVALID_TYPE_IDENTIFIER,
+	INVALID_TOPLEVEL_EXPR,
+
+	EXPECTED_LITERAL,
+	EXPECTED_EQ,
+	EXPECTED_DECLARATION,
+	EXPECTED_NEWLINE,
+	EXPECTED_EXPRESSION,
+	
+	UNMATCHED_CLOSE_PAREN,
+	UNMATCHED_OPEN_PAREN,
 };
 
 auto to_str(const CompErrID_t) -> const char*;
+auto to_msg(const CompErrID_t) -> const char*;
 
 } // namespace CompErrID
 
@@ -73,15 +87,6 @@ auto debug(const DebugCtx_t& _ctx, const DebugErrID::DebugErrID_t _id, MSG _msg)
 }
 
 template<typename MSG>
-auto cmperr(const CompCtx_t& _ctx, const CompErrID::CompErrID_t _id, MSG _msg) -> void
-{
-	_os << "ERR![E" << std::to_string(_id) << "]: " << CompErrID::to_str(_id) << '\n';
-	_os << _ctx << '\n';
-
-	exit(1);
-}
-
-template<typename MSG>
 auto msg(const DebugCtx_t& _ctx, MSG _msg) -> void
 {
 	_os << "MSG![]:\n";
@@ -90,6 +95,9 @@ auto msg(const DebugCtx_t& _ctx, MSG _msg) -> void
 	_os << " | " << _msg << std::endl;
 	_os << " |\n";
 }
+
+auto cmperr(const CompCtx_t, const CompErrID::CompErrID_t) -> void;
+auto cmperr(const CompErrID::CompErrID_t) -> void;
 
 auto read_file_err(const char*) -> void;
 auto invalid_extension_err(const char*) -> void;

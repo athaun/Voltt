@@ -108,8 +108,6 @@ struct VolttKeyword {
 	const Tok::TokID id;
 };
 
-auto static vlt_keyword_tok(const char* _source, const size_t _start, const size_t _end) -> const Tok::TokID;
-
 enum State {
 	STATE_START,
 	STATE_IDENT,
@@ -150,6 +148,10 @@ struct TokenizerCTX {
 		if (std::ferror(fd) != 0) Logger::read_file_err(_fname);
 									 
 		contents_size = std::ftell(fd)+1;
+		if (contents_size == 1) {
+			Logger::invalid_file_err(_fname);
+		}
+
 		contents = (char*)std::malloc(contents_size);
 
 		std::fseek(fd, 0, SEEK_SET);
@@ -174,6 +176,7 @@ struct TokenizerCTX {
 	}
 };
 
+auto vlt_keyword_tok(const TokenizerCTX*, const size_t _start, const size_t _end) -> const Tok::TokID;
 auto next_c(TokenizerCTX*) -> void;
 auto gen_t(TokenizerCTX*, const Tok::TokID) -> void;
 auto next_t(TokenizerCTX*) -> void;

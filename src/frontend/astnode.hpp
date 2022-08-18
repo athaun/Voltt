@@ -52,7 +52,7 @@ struct NodeLiteralDecimal {
 
 
 struct NodeIdent {
-	const char* raw;
+	char const* raw;
 };
 
 struct Node {
