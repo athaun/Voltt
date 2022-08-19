@@ -107,7 +107,7 @@ struct CTX {
 	const char* fname;
 	const char* contents;
 
-	CTX(Tokenizer::TokenizerCTX* _t)
+	CTX(Tokenizer::CTX* _t)
 	: tok_pos(0),
 		tok_buf(std::move(_t->tok_buf)),
 		fname(_t->fname),

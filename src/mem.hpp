@@ -2,6 +2,24 @@
 
 #include <cstdint>
 
+namespace Mem {
+
+using RelPrecision = int32_t;
+
+template<typename To, typename Precision = RelPrecision>
+auto make_relative(To* _ptr, Precision _base) -> Precision
+{
+	return _ptr ? (Precision)((uint8_t*)(_ptr) - (uint8_t*)&_base) : 0;
+}
+
+template<typename To, typename Precision = RelPrecision>
+auto from_relative(To _base) -> To*
+{
+	return _base ? (To*)((uint8_t*)((&_base) + _base)) : nullptr;
+}
+
+} // namespace Mem
+
 /*
  * WARNING, THIS DATA STRUCTURE WILL RESULT IN UNDEFINED BEHAVIOR IN CERTAIN CASES
  * EX:
@@ -23,7 +41,7 @@
  *	This relative pointer object can be used as a pattern that can be implemented into other data structures.
 */
 
-template<typename To, typename Precision = int16_t>
+template<typename To, typename Precision = int32_t>
 struct RelPtr {
 	Precision base;
 

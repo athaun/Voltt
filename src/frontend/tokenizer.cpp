@@ -25,7 +25,7 @@ static const VolttKeyword VLT_KEYWORDS[] = {
 	{"s32", Tok::TokenTypS32},
 };
 
-auto vlt_keyword_tok(const TokenizerCTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
+auto vlt_keyword_tok(const CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
 {
 	const size_t len = (_end-_start);
 
@@ -61,147 +61,147 @@ auto vlt_keyword_tok(const TokenizerCTX* _ctx, const size_t _start, const size_t
 	return (is_decimal) ? Tok::TokenLiteralDecimal : Tok::TokenLiteralNumeric;
 }
 
-auto next_c(TokenizerCTX* _t) -> void 
+auto next_c(CTX* _ctx) -> void 
 {
-	if (++_t->pos >= _t->contents_size) {
-		_t->state = STATE_EOF;
+	if (++_ctx->pos >= _ctx->contents_size) {
+		_ctx->state = STATE_EOF;
 		return;
 	}
 
-	if (_t->contents[_t->pos] == 10) {
-		++_t->line;
-		_t->col = 0;
+	if (_ctx->contents[_ctx->pos] == 10) {
+		++_ctx->line;
+		_ctx->col = 0;
 	}
-	else ++_t->col;
+	else ++_ctx->col;
 }
 
-auto gen_t(TokenizerCTX* _t, const Tok::TokID _id) -> void
+auto gen_t(CTX* _ctx, const Tok::TokID _id) -> void
 {
-	_t->tok_buf.emplace_back(
+	_ctx->tok_buf.emplace_back(
 		_id,
-		_t->pos,
-		_t->line,
-		_t->col
+		_ctx->pos,
+		_ctx->line,
+		_ctx->col
 	);
 }
 
-auto next_t(TokenizerCTX* _t) -> void
+auto next_t(CTX* _ctx) -> void
 {
-	switch (_t->state) {
+	switch (_ctx->state) {
 		default: Logger::unhandled_case_err("Failed to handle all the cases during tokenization states");
 
 		case STATE_EOF:
 			goto done;
 
 		case STATE_START:
-			switch(_t->contents[_t->pos]) {
+			switch(_ctx->contents[_ctx->pos]) {
 				default: Logger::unhandled_case_err("Failed to handle all cases during tokenization");
 
 				case 0:
 				case WHITESPACE_CASE: goto done;
 
 				case NEWLINE_CASE:
-					gen_t(_t, Tok::TokenEndStatement);
+					gen_t(_ctx, Tok::TokenEndStatement);
 					goto done;
 
 				case ':':
-					gen_t(_t, Tok::TokenColonSymbol);
-					_t->state = STATE_COLON;
+					gen_t(_ctx, Tok::TokenColonSymbol);
+					_ctx->state = STATE_COLON;
 					goto done;
 
 				case '=':
-					gen_t(_t, Tok::TokenEqSymbol);
+					gen_t(_ctx, Tok::TokenEqSymbol);
 					goto done;
 
 				case '(':
-					gen_t(_t, Tok::TokenParenOpen);
+					gen_t(_ctx, Tok::TokenParenOpen);
 					goto done;
 
 				case ')':
-					gen_t(_t, Tok::TokenParenClose);
+					gen_t(_ctx, Tok::TokenParenClose);
 					goto done;
 
 				case '+':
-					gen_t(_t, Tok::TokenBinOpAdd);
+					gen_t(_ctx, Tok::TokenBinOpAdd);
 					goto done;
 
 				case '-':
-					gen_t(_t, Tok::TokenBinOpSub);
+					gen_t(_ctx, Tok::TokenBinOpSub);
 					goto done;
 
 				case '*':
-					gen_t(_t, Tok::TokenBinOpMul);
+					gen_t(_ctx, Tok::TokenBinOpMul);
 					goto done;
 
 				case '/':
-					gen_t(_t, Tok::TokenBinOpDiv);
+					gen_t(_ctx, Tok::TokenBinOpDiv);
 					goto done;
 
 				case IDENT_ALLOWED_CASE:
-					gen_t(_t, Tok::TokenIdent);
-					_t->state = STATE_IDENT;
+					gen_t(_ctx, Tok::TokenIdent);
+					_ctx->state = STATE_IDENT;
 					goto done;
 			}
 
 		case STATE_COLON:
-			switch(_t->contents[_t->pos]) {
+			switch(_ctx->contents[_ctx->pos]) {
 				default: 
-					_t->state = STATE_START;
+					_ctx->state = STATE_START;
 					goto skip_iter;
 
 				case ':':
-					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t,
-						_t->tok_buf.back().offset,
-						_t->pos
+					_ctx->tok_buf.back().id = vlt_keyword_tok(
+						_ctx,
+						_ctx->tok_buf.back().offset,
+						_ctx->pos
 					); 
-					_t->state = STATE_START;
+					_ctx->state = STATE_START;
 					goto done;
 
 				case '=':
-					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t,
-						_t->tok_buf.back().offset,
-						_t->pos
+					_ctx->tok_buf.back().id = vlt_keyword_tok(
+						_ctx,
+						_ctx->tok_buf.back().offset,
+						_ctx->pos
 					);
-					_t->state = STATE_START;
+					_ctx->state = STATE_START;
 					goto done;
 			}
 
 		case STATE_IDENT: // handles idents, keywords, and literals 
 			for (;;) {
-			switch(_t->contents[_t->pos]) {
+			switch(_ctx->contents[_ctx->pos]) {
 				case 0:
 				default:
-					_t->tok_buf.back().id = vlt_keyword_tok(
-						_t,
-						_t->tok_buf.back().offset,
-						_t->pos-1
+					_ctx->tok_buf.back().id = vlt_keyword_tok(
+						_ctx,
+						_ctx->tok_buf.back().offset,
+						_ctx->pos-1
 					);
-					_t->tok_buf.back().end = _t->pos-1;
-					_t->state = STATE_START;
+					_ctx->tok_buf.back().end = _ctx->pos-1;
+					_ctx->state = STATE_START;
 					goto skip_iter;
 
 				case IDENT_ALLOWED_CASE:
 				case '.':
-					next_c(_t);
+					next_c(_ctx);
 					continue;
 			}
 			}
 	}
 	
-	done: next_c(_t); // dear god, goto... in 2022??
+	done: next_c(_ctx); // dear god, goto... in 2022??
 	skip_iter: return;
 }
 
-auto tokenize(TokenizerCTX* _t) -> void
+auto tokenize(CTX* _ctx) -> void
 {
-	while ( _t->state != STATE_EOF ) next_t(_t);
-	_t->tok_buf.emplace_back(
+	while ( _ctx->state != STATE_EOF ) next_t(_ctx);
+	_ctx->tok_buf.emplace_back(
 		Tok::TokenEndOfFile,
-		_t->pos+1,
-		_t->line,
-		_t->col+1
+		_ctx->pos+1,
+		_ctx->line,
+		_ctx->col+1
 	);
 }
 

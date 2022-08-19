@@ -1,13 +1,13 @@
 #pragma once
 
 #include "tok.hpp"
-#include "../defer.hpp"
-
-#include <cstdlib>
+#include "../mem.hpp"
 
 namespace Voltt {
 namespace ASTNode {
-	
+
+using NodePrecision = Mem::RelPrecision;
+
 enum NodeType : uint8_t {
 	TypeStatement,
 	TypeVariableDecl,
@@ -66,7 +66,6 @@ struct Node {
 		NodeTy ty_data;
 		NodeIdent ident_data;
 		NodeVariableDecl variable_decl_data;
-		NodeStatement statement_data;
 	} data;
 };
 

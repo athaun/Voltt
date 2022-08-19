@@ -122,7 +122,7 @@ enum State {
 
 auto is_valid_extension(const char*) -> bool;
 
-struct TokenizerCTX {
+struct CTX {
 	const char* fname;
 	char* contents;
 	size_t contents_size;
@@ -135,7 +135,7 @@ struct TokenizerCTX {
 
 	std::vector<Tok::Token> tok_buf;
 
-	TokenizerCTX(const char* _fname)
+	CTX(const char* _fname)
 	: fname(_fname)
 	{
 
@@ -169,18 +169,18 @@ struct TokenizerCTX {
 		tok_buf.reserve(contents_size/4);
 	}
 
-	~TokenizerCTX() {
+	//~CTX() {
 		// because tok_buf and contents need to be used during parsing
 		// they cannot be freed yet.
 		// if they aren't freed at some stage during parsing, yell at me in a PR
-	}
+	//}
 };
 
-auto vlt_keyword_tok(const TokenizerCTX*, const size_t _start, const size_t _end) -> const Tok::TokID;
-auto next_c(TokenizerCTX*) -> void;
-auto gen_t(TokenizerCTX*, const Tok::TokID) -> void;
-auto next_t(TokenizerCTX*) -> void;
-auto tokenize(TokenizerCTX*) -> void;
+auto vlt_keyword_tok(const CTX*, const size_t _start, const size_t _end) -> const Tok::TokID;
+auto next_c(CTX*) -> void;
+auto gen_t(CTX*, const Tok::TokID) -> void;
+auto next_t(CTX*) -> void;
+auto tokenize(CTX*) -> void;
 
 } // namespace Tokenizer
 } // namespace Voltt

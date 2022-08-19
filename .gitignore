@@ -32,8 +32,11 @@
 *.app
 
 # Voltt
+leak_check.sh
+valgrind-out.txt
 log.txt
 test.vlt
 compile_commands.json
+.vscode
 .clang-tidy
 voltt
