@@ -11,6 +11,9 @@ using NodePrecision = Mem::RelPrecision;
 enum NodeType : uint8_t {
 	TypeStatement,
 	TypeVariableDecl,
+	TypeFunctionDecl,
+	TypePrototype,
+	TypePrototypeArg,
 	TypeExprBinary,
 	TypeTy,
 	TypeLiteralNumeric,
@@ -32,6 +35,21 @@ struct NodeVariableDecl {
 	Node* expr;
 };
 
+struct NodePrototypeArg {
+	char const* raw;
+	Node* type;
+};
+
+struct NodeProtype {
+	char const* raw;
+	Node* args;
+};
+
+struct NodeFunctionDecl {
+	Node* proto;
+	Node* body;
+};
+
 struct NodeExprBinary {
 	Tok::TokID op;
 	Node* left;
@@ -50,7 +68,6 @@ struct NodeLiteralDecimal {
 	double value;
 };
 
-
 struct NodeIdent {
 	char const* raw;
 };
@@ -66,6 +83,9 @@ struct Node {
 		NodeTy ty_data;
 		NodeIdent ident_data;
 		NodeVariableDecl variable_decl_data;
+		NodePrototypeArg prototype_arg_data;
+		NodeProtype prototype_data;
+		NodeFunctionDecl function_decl_data;
 	} data;
 };
 

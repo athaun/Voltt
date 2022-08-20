@@ -63,7 +63,9 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 
 		case TokenArrowRight: return "->";
 		case TokenArrowLeft: return "<-";
-		
+
+		case TokenComma: return ",";
+
 		case TokenParenOpen: return "(";
 		case TokenParenClose: return ")";
 

@@ -123,6 +123,10 @@ auto next_t(CTX* _ctx) -> void
 					_ctx->state = STATE_CMP_LESS;
 					goto done;
 
+				case ',':
+					gen_t(_ctx, Tok::TokenComma);
+					goto done;
+
 				case '(':
 					gen_t(_ctx, Tok::TokenParenOpen);
 					goto done;

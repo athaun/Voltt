@@ -23,6 +23,8 @@ enum TokID : uint8_t {
 	TokenArrowRight,
 	TokenArrowLeft,
 
+	TokenComma,
+
 	TokenParenOpen,
 	TokenParenClose,
 
