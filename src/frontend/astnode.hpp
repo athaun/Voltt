@@ -43,11 +43,11 @@ struct NodeTy {
 };
 
 struct NodeLiteralNumeric {
-	int64_t value;
+	int32_t value;
 };
 
 struct NodeLiteralDecimal {
-	long double value;
+	double value;
 };
 
 

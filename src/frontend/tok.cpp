@@ -55,9 +55,20 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 		case TokenColonInferMut: return ":=";
 		case TokenColonInferConst: return "::";
 		case TokenEqSymbol: return "=";
+
+		case TokenCmpGreater: return ">";
+		case TokenCmpGreaterEq: return ">=";
+		case TokenCmpLess: return "<";
+		case TokenCmpLessEq: return "<=";
+
+		case TokenArrowRight: return "->";
+		case TokenArrowLeft: return "<-";
 		
 		case TokenParenOpen: return "(";
 		case TokenParenClose: return ")";
+
+		case TokenBracketOpen: return "{";
+		case TokenBracketClose: return "}";	
 
 		case TokenBinOpAdd: return "+";
 		case TokenBinOpSub: return "-";
@@ -65,6 +76,8 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 		case TokenBinOpDiv: return "/";
 
 		case TokenTypS32: return "s32";
+
+		case TokenFn: return "fn";
 		
 		case TokenEndStatement: return "TokenEndStatement";
 		case TokenEndOfFile: return "TokenEndOfFile";

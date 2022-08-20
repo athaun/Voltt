@@ -1,4 +1,5 @@
 #include "tokenizer.hpp"
+#include "tok.hpp"
 
 namespace Voltt {
 namespace Tokenizer {
@@ -20,9 +21,8 @@ auto is_valid_extension(const char* _fname) -> bool
 }
 
 static const VolttKeyword VLT_KEYWORDS[] = {
-	{"::", Tok::TokenColonInferConst},
-	{":=", Tok::TokenColonInferMut},
 	{"s32", Tok::TokenTypS32},
+	{"fn", Tok::TokenFn},
 };
 
 auto vlt_keyword_tok(const CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
@@ -113,6 +113,16 @@ auto next_t(CTX* _ctx) -> void
 					gen_t(_ctx, Tok::TokenEqSymbol);
 					goto done;
 
+				case '>':
+					gen_t(_ctx, Tok::TokenCmpGreater);
+					_ctx->state = STATE_CMP_GREATER;
+					goto done;
+
+				case '<':
+					gen_t(_ctx, Tok::TokenCmpLess);
+					_ctx->state = STATE_CMP_LESS;
+					goto done;
+
 				case '(':
 					gen_t(_ctx, Tok::TokenParenOpen);
 					goto done;
@@ -121,12 +131,22 @@ auto next_t(CTX* _ctx) -> void
 					gen_t(_ctx, Tok::TokenParenClose);
 					goto done;
 
+				case '{':
+					gen_t(_ctx, Tok::TokenBracketOpen);
+					goto done;
+
+				case '}':
+					gen_t(_ctx, Tok::TokenBracketClose);
+					goto done;
+
 				case '+':
 					gen_t(_ctx, Tok::TokenBinOpAdd);
 					goto done;
 
 				case '-':
 					gen_t(_ctx, Tok::TokenBinOpSub);
+					_ctx->state = STATE_DASH;
+
 					goto done;
 
 				case '*':
@@ -143,6 +163,55 @@ auto next_t(CTX* _ctx) -> void
 					goto done;
 			}
 
+		case STATE_CMP_GREATER:
+			switch(_ctx->contents[_ctx->pos]) {
+				default:
+					_ctx->state = STATE_START;
+					goto skip_iter;
+
+			case '=':
+				_ctx->tok_buf.back().id = Tok::TokenCmpGreaterEq;
+				_ctx->tok_buf.back().end = _ctx->pos;
+
+				_ctx->state = STATE_START;
+				goto done;
+			
+			case '-':
+				_ctx->tok_buf.back().id = Tok::TokenArrowLeft;
+				_ctx->tok_buf.back().end = _ctx->pos;
+
+				_ctx->state = STATE_START;
+				goto done;
+			}
+
+		case STATE_CMP_LESS:
+			switch(_ctx->contents[_ctx->pos]) {
+				default:
+					_ctx->state = STATE_START;
+					goto skip_iter;
+			
+				case '=':
+					_ctx->tok_buf.back().id = Tok::TokenCmpLessEq;
+					_ctx->tok_buf.back().end = _ctx->pos;
+
+					_ctx->state = STATE_START;
+					goto done;
+			}
+
+		case STATE_DASH:
+			switch(_ctx->contents[_ctx->pos]) {
+				default:
+					_ctx->state = STATE_START;
+					goto skip_iter;
+
+				case '>':
+					_ctx->tok_buf.back().id = Tok::TokenArrowRight;
+					_ctx->tok_buf.back().end = _ctx->pos;
+
+					_ctx->state = STATE_START;
+					goto done;
+			}
+
 		case STATE_COLON:
 			switch(_ctx->contents[_ctx->pos]) {
 				default: 
@@ -150,20 +219,16 @@ auto next_t(CTX* _ctx) -> void
 					goto skip_iter;
 
 				case ':':
-					_ctx->tok_buf.back().id = vlt_keyword_tok(
-						_ctx,
-						_ctx->tok_buf.back().offset,
-						_ctx->pos
-					); 
+					_ctx->tok_buf.back().id = Tok::TokenColonInferConst;
+					_ctx->tok_buf.back().end = _ctx->pos;
+					
 					_ctx->state = STATE_START;
 					goto done;
 
 				case '=':
-					_ctx->tok_buf.back().id = vlt_keyword_tok(
-						_ctx,
-						_ctx->tok_buf.back().offset,
-						_ctx->pos
-					);
+					_ctx->tok_buf.back().id = Tok::TokenColonInferConst;
+					_ctx->tok_buf.back().end = _ctx->pos;
+					
 					_ctx->state = STATE_START;
 					goto done;
 			}

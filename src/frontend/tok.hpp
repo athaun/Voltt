@@ -15,8 +15,19 @@ enum TokID : uint8_t {
 	TokenColonInferConst,
     TokenEqSymbol,
 
+	TokenCmpGreater,
+	TokenCmpGreaterEq,
+	TokenCmpLess,
+	TokenCmpLessEq,
+
+	TokenArrowRight,
+	TokenArrowLeft,
+
 	TokenParenOpen,
 	TokenParenClose,
+
+	TokenBracketOpen,
+	TokenBracketClose,
 
 	TokenBinOpAdd,
 	TokenBinOpSub,
@@ -24,6 +35,8 @@ enum TokID : uint8_t {
 	TokenBinOpDiv,
 
     TokenTypS32,
+
+	TokenFn,
    
 	TokenIdent,
     TokenLiteralNumeric,

@@ -111,10 +111,13 @@ struct VolttKeyword {
 enum State {
 	STATE_START,
 	STATE_IDENT,
-
+	
 	STATE_COLON,
 	STATE_EQ,
-	
+	STATE_CMP_GREATER,
+	STATE_CMP_LESS,
+	STATE_DASH,
+
 	STATE_LITERAL_NUM,
 
 	STATE_EOF,
@@ -123,18 +126,17 @@ enum State {
 auto is_valid_extension(const char*) -> bool;
 
 struct CTX {
-	const char* fname;
-	char* contents;
-	size_t contents_size;
-
 	State state = STATE_START;
 
+	size_t contents_size;
 	size_t pos = 0;
 	size_t line = 1;
 	size_t col = 1;
 
 	std::vector<Tok::Token> tok_buf;
-
+	const char* fname;
+	char* contents;
+	
 	CTX(const char* _fname)
 	: fname(_fname)
 	{
