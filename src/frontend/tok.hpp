@@ -77,8 +77,8 @@ struct Token {
 	{}
 };
 
-auto dump(std::ostream&, const Token&, const char*) -> void; 
-auto dump_errctx(const Token&, const char*, const char*) -> Logger::CompCtx_t;
+auto dump(std::ostream&, const Token&, const char*) -> void;
+auto dump_errctx(const Tok::Token& _tok, const char* _contents, const char* _fname) -> const Logger::CompCTX;
 auto to_str(const Token&, const char*) -> const char*;
 
 } // namespace Tok

@@ -10,11 +10,11 @@ static const char* VLT_EXTENSIONS[] = {
 	".vlt",
 };
 
-auto is_valid_extension(const char* _fname) -> bool
+auto is_valid_extension(const char* _fname) -> const bool
 {
 	for ( size_t i = 0; i < ARR_LEN(VLT_EXTENSIONS); i++ ) {
 		const char* is_valid = std::strstr(_fname, VLT_EXTENSIONS[i]);
-		if ( (is_valid != NULL) && (strlen(is_valid) == strlen(VLT_EXTENSIONS[i])) ) return true;
+		if ( (is_valid != nullptr) && (strlen(is_valid) == strlen(VLT_EXTENSIONS[i])) ) return true;
 	}
 
 	return false;
@@ -25,7 +25,7 @@ static const VolttKeyword VLT_KEYWORDS[] = {
 	{"fn", Tok::TokenFn},
 };
 
-auto vlt_keyword_tok(const CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
+auto vlt_keyword_tok(CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
 {
 	const size_t len = (_end-_start);
 
@@ -42,17 +42,7 @@ auto vlt_keyword_tok(const CTX* _ctx, const size_t _start, const size_t _end) ->
 			case DIGIT_CASE: break;
 
 			case '.':
-				if (is_decimal) { 
-					Logger::cmperr(
-						Tok::dump_errctx(
-							_ctx->tok_buf.back(),
-							_ctx->contents,
-							_ctx->fname
-						),
-						Logger::CompErrID::INVALID_DECIMAL_FORMAT
-					);
-				}
-
+				if (is_decimal) Logger::invalid_decimal_format_err(dump_errctx(_ctx, _ctx->tok_buf.last()));
 				is_decimal = true;
 				break;
 		}
@@ -77,7 +67,7 @@ auto next_c(CTX* _ctx) -> void
 
 auto gen_t(CTX* _ctx, const Tok::TokID _id) -> void
 {
-	_ctx->tok_buf.emplace_back(
+	_ctx->tok_buf.place(
 		_id,
 		_ctx->pos,
 		_ctx->line,
@@ -85,17 +75,26 @@ auto gen_t(CTX* _ctx, const Tok::TokID _id) -> void
 	);
 }
 
+auto dump_errctx(const CTX* _ctx) -> const Logger::CompCTX
+{
+	return {
+		.start = _ctx->col,
+		.line = _ctx->line,
+		.fname = _ctx->fname,
+	};
+}
+
 auto next_t(CTX* _ctx) -> void
 {
 	switch (_ctx->state) {
-		default: Logger::unhandled_case_err("Failed to handle all the cases during tokenization states");
+		default: Logger::unhandled_case_err("Failed to handle all the cases during tokenization states", DBCTX);
 
 		case STATE_EOF:
 			goto done;
 
 		case STATE_START:
 			switch(_ctx->contents[_ctx->pos]) {
-				default: Logger::unhandled_case_err("Failed to handle all cases during tokenization");
+				default: Logger::unhandled_case_err("Failed to handle all cases during tokenization", DBCTX);
 
 				case 0:
 				case WHITESPACE_CASE: goto done;
@@ -174,15 +173,15 @@ auto next_t(CTX* _ctx) -> void
 					goto skip_iter;
 
 			case '=':
-				_ctx->tok_buf.back().id = Tok::TokenCmpGreaterEq;
-				_ctx->tok_buf.back().end = _ctx->pos;
+				_ctx->tok_buf.last().id = Tok::TokenCmpGreaterEq;
+				_ctx->tok_buf.last().end = _ctx->pos;
 
 				_ctx->state = STATE_START;
 				goto done;
 			
 			case '-':
-				_ctx->tok_buf.back().id = Tok::TokenArrowLeft;
-				_ctx->tok_buf.back().end = _ctx->pos;
+				_ctx->tok_buf.last().id = Tok::TokenArrowLeft;
+				_ctx->tok_buf.last().end = _ctx->pos;
 
 				_ctx->state = STATE_START;
 				goto done;
@@ -195,8 +194,8 @@ auto next_t(CTX* _ctx) -> void
 					goto skip_iter;
 			
 				case '=':
-					_ctx->tok_buf.back().id = Tok::TokenCmpLessEq;
-					_ctx->tok_buf.back().end = _ctx->pos;
+					_ctx->tok_buf.last().id = Tok::TokenCmpLessEq;
+					_ctx->tok_buf.last().end = _ctx->pos;
 
 					_ctx->state = STATE_START;
 					goto done;
@@ -209,8 +208,8 @@ auto next_t(CTX* _ctx) -> void
 					goto skip_iter;
 
 				case '>':
-					_ctx->tok_buf.back().id = Tok::TokenArrowRight;
-					_ctx->tok_buf.back().end = _ctx->pos;
+					_ctx->tok_buf.last().id = Tok::TokenArrowRight;
+					_ctx->tok_buf.last().end = _ctx->pos;
 
 					_ctx->state = STATE_START;
 					goto done;
@@ -223,15 +222,15 @@ auto next_t(CTX* _ctx) -> void
 					goto skip_iter;
 
 				case ':':
-					_ctx->tok_buf.back().id = Tok::TokenColonInferConst;
-					_ctx->tok_buf.back().end = _ctx->pos;
+					_ctx->tok_buf.last().id = Tok::TokenColonInferConst;
+					_ctx->tok_buf.last().end = _ctx->pos;
 					
 					_ctx->state = STATE_START;
 					goto done;
 
 				case '=':
-					_ctx->tok_buf.back().id = Tok::TokenColonInferConst;
-					_ctx->tok_buf.back().end = _ctx->pos;
+					_ctx->tok_buf.last().id = Tok::TokenColonInferConst;
+					_ctx->tok_buf.last().end = _ctx->pos;
 					
 					_ctx->state = STATE_START;
 					goto done;
@@ -242,12 +241,12 @@ auto next_t(CTX* _ctx) -> void
 			switch(_ctx->contents[_ctx->pos]) {
 				case 0:
 				default:
-					_ctx->tok_buf.back().id = vlt_keyword_tok(
+					_ctx->tok_buf.last().id = vlt_keyword_tok(
 						_ctx,
-						_ctx->tok_buf.back().offset,
+						_ctx->tok_buf.last().offset,
 						_ctx->pos-1
 					);
-					_ctx->tok_buf.back().end = _ctx->pos-1;
+					_ctx->tok_buf.last().end = _ctx->pos-1;
 					_ctx->state = STATE_START;
 					goto skip_iter;
 
@@ -266,7 +265,7 @@ auto next_t(CTX* _ctx) -> void
 auto tokenize(CTX* _ctx) -> void
 {
 	while ( _ctx->state != STATE_EOF ) next_t(_ctx);
-	_ctx->tok_buf.emplace_back(
+	_ctx->tok_buf.place(
 		Tok::TokenEndOfFile,
 		_ctx->pos+1,
 		_ctx->line,

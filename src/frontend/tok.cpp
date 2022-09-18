@@ -16,41 +16,36 @@ auto dump(std::ostream& _os, const Token& _tok, const char* _source) -> void
 
 	// safely deallocates memory
 	switch (_tok.id) {
-		case ALLOC_STR_CASE: std::free((void*)word);
+		case ALLOC_STR_CASE: std::free(const_cast<char*>(word));
 		default: return;
 	}
 }
 
-auto dump_errctx(const Tok::Token& _tok, const char* _source, const char* _fname) -> Logger::CompCtx_t
+auto dump_errctx(const Tok::Token& _tok, const char* _contents, const char* _fname) -> const Logger::CompCTX
 {
 	size_t line_start = _tok.offset;
 	size_t line_end = _tok.end;
 
-	for (;;) if (line_start <= 0 || _source[--line_start] == '\n') break;
+	for (;;) if (line_start <= 0 || _contents[--line_start] == '\n') break;
 
-	for (;;) if (line_end >= strlen(_source) || _source[++line_end] == '\n') break;
+	for (;;) if (line_end >= strlen(_contents) || _contents[++line_end] == '\n') break;
 
-	return Logger::CompCtx_t{
-		.m_start = _tok.offset,
-		.m_end = _tok.end,
-		.m_line_start = line_start,
-		.m_line_end = line_end,
-		.m_line = _tok.line-1,
-		.m_fname = _fname,
-		.m_fd_contents = _source,
+	return {
+		.start = _tok.offset,
+		.end = _tok.end,
+		.line_start = line_start,
+		.line_end = line_end,
+		.line = _tok.line-1,
+		.fname = _fname,
+		.fd_contents = _contents,
 	};
 }
 
 auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 {
 	switch(_tok.id) {
-		default: 
-			Logger::debug(
-				Logger::DBCTX,
-				Logger::DebugErrID::DebugErrID_t::TOKID_STR_ERR,
-				std::string{"Unable to convert: "}+std::to_string(_tok.id)+" to str."
-			);
-	
+		default: Logger::tokid_str_err(DBCTX);
+
 		case TokenColonSymbol: return ":";
 		case TokenColonInferMut: return ":=";
 		case TokenColonInferConst: return "::";
@@ -94,12 +89,12 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 
 		case ALLOC_STR_CASE:
 			size_t len = (_tok.end-_tok.offset)+1;
-			char* result = (char*)std::malloc(len);
+			char* result = static_cast<char*>(std::malloc(len));
 			std::memcpy(result, &_source[_tok.offset], len);
 			result[len] = 0;
 			return result;
 	}
-	Logger::unreachable_err();
+	Logger::unreachable_err(DBCTX);
 }
 
 } // namespace Tok

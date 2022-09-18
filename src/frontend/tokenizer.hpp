@@ -1,14 +1,13 @@
 #pragma once
 
 #include "tok.hpp"
-#include "../optional.hpp"
 #include "../logger.hpp"
 #include "../defer.hpp"
+#include "../list.hpp"
 #include "../todo.hpp"
 
 #include <cstring>
 #include <cstdio>
-#include <vector>
 
 namespace Voltt {
 namespace Tokenizer {
@@ -123,7 +122,17 @@ enum State {
 	STATE_EOF,
 };
 
-auto is_valid_extension(const char*) -> bool;
+auto is_valid_extension(const char*) -> const bool;
+
+struct CTX;
+
+auto vlt_keyword_tok(CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID;
+auto next_c(CTX* _ctx) -> void;
+auto gen_t(CTX* _ctx, const Tok::TokID _id) -> void;
+auto next_t(CTX* _ctx) -> void;
+auto tokenize(CTX* _ctx) -> void;
+
+auto dump_errctx(const CTX* _ctx) -> const Logger::CompCTX;
 
 struct CTX {
 	State state = STATE_START;
@@ -133,34 +142,31 @@ struct CTX {
 	size_t line = 1;
 	size_t col = 1;
 
-	std::vector<Tok::Token> tok_buf;
+	List<Tok::Token> tok_buf;
 	const char* fname;
 	char* contents;
-	
-	CTX(const char* _fname)
+
+	explicit CTX(const char* _fname)
 	: fname(_fname)
 	{
-
-		if (!is_valid_extension(_fname)) Logger::invalid_extension_err(_fname);
+		if (!is_valid_extension(_fname)) Logger::invalid_file_extension_err(dump_errctx(this));
 
 		FILE* fd = std::fopen(_fname, "r");
-		if (!fd) Logger::invalid_file_err(_fname);
+		if (!fd) Logger::invalid_file_err(dump_errctx(this));
 
 		std::fseek(fd, 0, SEEK_END);
-		if (std::ferror(fd) != 0) Logger::read_file_err(_fname);
+		if (std::ferror(fd) != 0) Logger::read_file_err(dump_errctx(this));
 									 
 		contents_size = std::ftell(fd)+1;
-		if (contents_size == 1) {
-			Logger::invalid_file_err(_fname);
-		}
+		if (contents_size <= 1) Logger::invalid_file_err(dump_errctx(this));
 
-		contents = (char*)std::malloc(contents_size);
+		contents = static_cast<char*>(std::malloc(contents_size));
 
 		std::fseek(fd, 0, SEEK_SET);
-		if (std::ferror(fd) != 0) Logger::read_file_err(_fname);
+		if (std::ferror(fd) != 0) Logger::read_file_err(dump_errctx(this));
 		
-		size_t total_read = std::fread(contents, contents_size, 1, fd);
-		if (ferror(fd) != 0) Logger::read_file_err(_fname);
+		std::fread(contents, contents_size, 1, fd);
+		if (ferror(fd) != 0) Logger::read_file_err(dump_errctx(this));
 		// I get undefined behavior unless I do this, I thought fread would take care of null termination
 		contents[contents_size] = 0;
 
@@ -168,7 +174,7 @@ struct CTX {
 		
 		// helps save on realloc calls.
 		// contents_size/4 is not the most efficient size, just an estimation
-		tok_buf.reserve(contents_size/4);
+		tok_buf.resize(contents_size >> 2);
 	}
 
 	//~CTX() {
@@ -178,11 +184,10 @@ struct CTX {
 	//}
 };
 
-auto vlt_keyword_tok(const CTX*, const size_t _start, const size_t _end) -> const Tok::TokID;
-auto next_c(CTX*) -> void;
-auto gen_t(CTX*, const Tok::TokID) -> void;
-auto next_t(CTX*) -> void;
-auto tokenize(CTX*) -> void;
+auto inline dump_errctx(const CTX* _ctx, const Tok::Token& _tok) -> const Logger::CompCTX
+{
+	return Tok::dump_errctx(_tok, _ctx->contents, _ctx->fname);
+}
 
 } // namespace Tokenizer
 } // namespace Voltt

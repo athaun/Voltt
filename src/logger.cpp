@@ -1,175 +1,215 @@
 #include "logger.hpp"
+#include <cstdlib>
+#include <ostream>
 
 namespace Logger {
 
-auto operator<<(std::ostream& _os, const DebugCtx_t& _ctx) -> std::ostream&
+auto operator<<(std::ostream& _os, const DBGErrno _err) -> std::ostream&
 {
-	_os << "  --> " << _ctx.m_file << ':' << _ctx.m_func << "():" << _ctx.m_line;
-	return _os; 
+     _os << "DBG![" << std::to_string(_err) << "]: " << errno_str(_err);
+    return _os;
 }
 
-namespace DebugErrID {
-
-auto to_str(const DebugErrID_t _id) -> const char*
+auto errno_str(const DBGErrno _err) -> const char*
 {
-	switch (_id) {
-		default: abort();
+    switch (_err) {
+        default: break;
 
-		case UNKNOWN: return "Encountered an unknown error during compilation";	
-		case TODO_ERR: return "TODO";
-		case UNREACHABLE_ERR: return "Encountered an unreachable condition during compilation";
-		case UNHANDLED_CASE_ERR: return "Encountered an unrecoverable conditional error";
-		case TOKID_STR_ERR: return "Encountered an error converting Tok::TokID to string";
-		case TOK_STATE_ERR: return "Encountered an error determining the tokenizer state";
-		case ASTGEN_INVALID_TOK_ERR: return "Encountered an unhandled token during AST generation";
-		case UNWRAP_ERR: return "Failed to unwrap a value, try being safe next time.";
-	}
+        case DBG_UNKNOWN_ERR: return "Unknown Error";
+        case UNREACHABLE_ERR: return "Unreachable Error";
+        case UNHANDLED_CASE_ERR: return "Unhandled Case Error";
+        case TOKID_STR_ERR: return "Unknown Token to Stringify Error";
+        case TODO_ERR: return "TODO Error";
+    }
 
-	abort();
+    dbg_msg();
+    std::cerr << "Invalid error code passsed to convert to error message!\n";
+    
+    std::exit(1);
 }
 
-} // namespace DebugErrID
-
-// REFACTOR THIS. THIS IS AWFUL
-auto operator<<(std::ostream& _os, const CompCtx_t& _ctx) -> std::ostream&
+auto errno_str(const CMPErrno _err) -> const char*
 {
+    switch (_err) {
+        default: break;
 
-	const std::string line_num = std::to_string(_ctx.m_line);
-	const size_t line_len = (_ctx.m_line_end-_ctx.m_line_start);
+        case CMP_UNKNOWN_ERR: return "Unknown Error";
+        case INVALID_FILE_ERR: return "Invalid File Error";
+        case INVALID_FILE_EXT_ERR: return "Invalid File Extension Error";
+        case READ_FILE_ERR: return "Read File Error";
+        case INVALID_DECIMAL_FORMAT: return "Invalid Decimal Format Error";
+        case INVALID_TOPLEVEL_EXPR: return "Invalid Toplevel Expression Error";
+        case UNMATCHED_CLOSE_PAREN: return "Unmatched Closing Parenthesis Error";
+        case UNMATCHED_OPEN_PAREN: return "Unmatched Open Parenthesis Error";
+        case EXPECTED_EXPRESSION: return "Expected Expression Error";
+        case EXPECTED_DECLARATION: return "Expected Declaration Error";
+        case EXPECTED_EQ: return "Expected EQ Error";
+        case INVALID_TYPE_IDENTIFIER: return "Invalid Type Identifier Error";
+        case EXPECTED_LITERAL: return "Expected Literal Error";
+    }
 
-	_os << " --> " << _ctx.m_fname << ':' << _ctx.m_line << ':' << _ctx.m_start+1 << '\n';
+    dbg_msg();
+    std::cerr << "Invalid error code passsed to convert to error message!\n";
+    
+    std::exit(1);
+}
+
+auto operator<<(std::ostream& _os, const CMPErrno _err) -> std::ostream&
+{
+    _os << "ERR![" << std::to_string(_err) << "]: " << errno_str(_err);
+    return _os;
+}
+
+auto operator<<(std::ostream& _os, const DebugCTX& _ctx) -> std::ostream&
+{
+    _os << " --> " << _ctx.fname << " : " << _ctx.func << "() : " << _ctx.line << '\n'; 
+    return _os;
+}
+
+auto operator<<(std::ostream& _os, const CompCTX& _ctx) -> std::ostream&
+{
+    _os << " --> " << _ctx.fname << " : " << _ctx.line << ':' << _ctx.start << '\n';
+    return _os;
+}
+
+auto output_prog_line(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+	const std::string line_num = std::to_string(_ctx.line);
+	const size_t line_len = (_ctx.line_end-_ctx.line_start);
 
 	for (size_t idx = 0; idx <= line_num.length(); ++idx) _os.write(" ", 1);
 	_os.write("|\n", 2);
 
 	_os << line_num << " | ";
 	
-	_os.write(&_ctx.m_fd_contents[_ctx.m_line_start], line_len);
+	_os.write(&_ctx.fd_contents[_ctx.line_start], line_len);
 	_os.write("\n", 1);
 
 	for (size_t idx = 0; idx <= line_num.length(); ++idx) _os.write(" ", 1);
 	_os << "| ";
 	
-	size_t tok_offset = (_ctx.m_start-_ctx.m_line_start);
+	size_t tok_offset = (_ctx.start-_ctx.line_start);
 	for (; tok_offset-- ;) _os.write(" ", 1);
 
-	switch (_ctx.m_end) {
+	switch (_ctx.end) {
 		default:
-			for (size_t idx = _ctx.m_start; idx <= _ctx.m_end; idx++) _os.write("^", 1);
+			for (size_t idx = _ctx.start; idx <= _ctx.end; idx++) _os.write("^", 1);
 			break;
 
 		case 0: _os.write("^", 1);
 	}
 
 	_os.write("\n", 1);
-
-	return _os;
 }
 
-namespace CompErrID {
-
-auto to_str(const CompErrID_t _id) -> const char*
+/*
+ * Debug ERRS
+*/
+auto unknown_err(const DebugCTX& _ctx, std::ostream& _os) -> void
 {
-	switch (_id) {
-		default: abort();
-	
-		case UNKNOWN: return "Unknown Error";
-		case UNKNOWN_FILE_ERR: return "Invalid File to Compile";
-		case INVALID_FILE_EXTENSION_ERR: return "Invalid File Extension Error";
-		case READ_FILE_ERR: return "Input File Error";
-
-		case INVALID_DECIMAL_FORMAT: return "Invalid Decimal Format";
-		case INVALID_TYPE_IDENTIFIER: return "Invalid Type Identifer";
-		case INVALID_TOPLEVEL_EXPR: return "Invalid Top Level Expression";
-
-		case EXPECTED_LITERAL: return "Expected Literal";
-		case EXPECTED_EQ: return "Expected Assignment";
-		case EXPECTED_DECLARATION: return "Expected Declaration";
-		case EXPECTED_NEWLINE: return "Expected Newline";
-		case EXPECTED_EXPRESSION: return "Expected Expression";
-
-		case UNMATCHED_OPEN_PAREN: 
-		case UNMATCHED_CLOSE_PAREN: return "Unmatched parenthesis";
-	}
-
-	abort();
+    gen_err("An unknown error occurred", _ctx, DBG_UNKNOWN_ERR, _os);
 }
 
-auto to_msg(const CompErrID_t _id) -> const char*
+auto unreachable_err(const DebugCTX& _ctx, std::ostream& _os) -> void
 {
-	switch (_id) {
-		default: abort();
-	
-		case UNKNOWN: return "Encountered an unknown error.";
-		case UNKNOWN_FILE_ERR: return "Encountered an error trying to open a file.";
-		case INVALID_FILE_EXTENSION_ERR: return "All voltt files must have the .vlt extension";
-		case READ_FILE_ERR: return "Encountered an error reading from a file";
-	
-		case INVALID_DECIMAL_FORMAT: return "Numeric Literals cannot contain more than one decimal";
-		case INVALID_TYPE_IDENTIFIER: return "Identifer is an invalid type";
-		case INVALID_TOPLEVEL_EXPR: return "Must declare an expression at top level";
-
-		case EXPECTED_LITERAL: return "Expected a literal but got an identifier instead";
-		case EXPECTED_EQ: return "Expected either an ':' or '=' for assignment";
-		case EXPECTED_DECLARATION: return "Use ':', '::', or ':=' for variable assignment";
-		case EXPECTED_NEWLINE: return "All expressions must end with a newline.";
-		case EXPECTED_EXPRESSION: return "No expression to assign.";
-
-		case UNMATCHED_CLOSE_PAREN: return "Unmatched closing parenthasises or however you spell them.";
-		case UNMATCHED_OPEN_PAREN: return "Unmatched open parenthesis";
-		
-	}
-
-	abort();
+    gen_err("An unreachable condition has been reached", _ctx, UNREACHABLE_ERR, _os);
 }
 
-} // namespace CompErrID
-
-auto cmperr(const CompCtx_t _ctx, const CompErrID::CompErrID_t _id) -> void
+auto unhandled_case_err(const char* _msg, const DebugCTX& _ctx, std::ostream& _os) -> void
 {
-	std::cerr << "ERR[E" << std::to_string(_id) << "] " << CompErrID::to_str(_id) << '\n';
-	std::cerr << _ctx;
-
-	std::cerr << "MSG!\n"; 
-	std::cerr << "    \"" << CompErrID::to_msg(_id) << "\"\n";
-	std::cerr << std::endl;
-
-	exit(1);
+    gen_err(_msg, _ctx, UNHANDLED_CASE_ERR, _os);
 }
 
-auto cmperr(const CompErrID::CompErrID_t _id) -> void
+auto tokid_str_err(const DebugCTX& _ctx, std::ostream& _os) -> void
 {
-	std::cerr << "ERR[E" << std::to_string(_id) << "] " << CompErrID::to_str(_id) << '\n';
-	
-	std::cerr << "MSG!\n"; 
-	std::cerr << "    \"" << CompErrID::to_msg(_id) << "\"\n";
-	std::cerr << std::endl;
-
-	exit(1);
+   gen_err("Failed to convert TokID to string", _ctx, TOKID_STR_ERR, _os);
 }
 
-auto read_file_err(const char* _fname) -> void
+/*
+ * Comptime ERRS
+*/
+auto unknown_err(const CompCTX& _ctx, std::ostream& _os) -> void
 {
-	_os << "ERR![E" << std::to_string(CompErrID::CompErrID_t::READ_FILE_ERR) << "]: " << CompErrID::to_str(CompErrID::CompErrID_t::READ_FILE_ERR) << '\n';
-	_os << "  --> " << _fname << std::endl; 
-
-	exit(1);
+    dbg_msg(_os);
+    gen_err("An unknown error occurred", _ctx, CMP_UNKNOWN_ERR, _os);
 }
 
-auto invalid_extension_err(const char* _fname) -> void
+auto invalid_file_err(const CompCTX& _ctx, std::ostream& _os) -> void
 {
-	_os << "ERR![E" << std::to_string(CompErrID::CompErrID_t::INVALID_FILE_EXTENSION_ERR) << "]: " << CompErrID::to_str(CompErrID::CompErrID_t::INVALID_FILE_EXTENSION_ERR) << '\n';
-	_os << "  --> " << _fname << std::endl;
+    _os << INVALID_FILE_ERR << '\n';
+    _os << _ctx << "|\n";
+    _os << "| An error occured when attempting to open: \"" << _ctx.fname << "\"\n";
+    _os << "|\n";
 
-	exit(1);
+    std::exit(1);
 }
 
-auto invalid_file_err(const char* _fname) -> void
+auto invalid_file_extension_err(const CompCTX& _ctx, std::ostream& _os) -> void
 {
-	_os << "ERR![E" << std::to_string(CompErrID::CompErrID_t::READ_FILE_ERR) << "]: " << CompErrID::to_str(CompErrID::CompErrID_t::READ_FILE_ERR) << '\n';
-	_os << "  --> " << _fname << std::endl; 
+    _os << INVALID_FILE_EXT_ERR << '\n';
+    _os << _ctx << "|\n";
+    _os << "| File: \"" << _ctx.fname << "\" did not contain a valid '.vlt' extension.\n";
+    _os << "|\n";
 
-	exit(1);
+    std::exit(1);
 }
+
+auto read_file_err(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    _os << READ_FILE_ERR << '\n';
+    _os << _ctx << "|\n";
+    _os << "| Unable to read file: \"" << _ctx.fname << "\"\n";
+    _os << "|\n";
+
+    std::exit(1);
+}
+
+auto invalid_decimal_format_err(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, INVALID_DECIMAL_FORMAT, _os);
+}
+
+auto invalid_toplevel_expr(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, INVALID_TOPLEVEL_EXPR, _os);
+}
+
+auto unmatched_open_paren(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, UNMATCHED_OPEN_PAREN, _os);
+}
+
+auto unmatched_close_paren(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, UNMATCHED_CLOSE_PAREN, _os);
+}
+
+auto expected_expression(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, EXPECTED_EXPRESSION, _os);
+}
+
+auto expected_declaration(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, EXPECTED_DECLARATION, _os);
+}
+
+auto expected_eq(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, EXPECTED_EQ, _os);
+}
+
+auto invalid_type_identifier(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, INVALID_TYPE_IDENTIFIER, _os);
+}
+
+auto expected_literal(const CompCTX& _ctx, std::ostream& _os) -> void
+{
+    program_line_err(_ctx, EXPECTED_LITERAL, _os);
+}
+
+
+
 
 } // namespace Logger

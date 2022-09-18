@@ -1,20 +1,16 @@
+#include "frontend/ast.hpp"
 #include "frontend/parser.hpp"
-#include "frontend/astgen.hpp"
 
-#include <iostream>
 #include <cstdint>
 
 auto main() -> int32_t
 {
-	using namespace Voltt;
+	Voltt::Tokenizer::CTX tokctx("test.vlt");
+	Voltt::Tokenizer::tokenize(&tokctx);
+	Voltt::Parser::CTX parctx(&tokctx);
 
-	Tokenizer::CTX tokctx("test.vlt");
-	Tokenizer::tokenize(&tokctx);
-
-	Parser::CTX parctx(&tokctx);
-	Parser::parse(&parctx);
-	
-	for ( const ASTNode::Node* node : parctx.body ) ASTGen::ast_dump_node(std::cout, node);
+	Voltt::Parser::parse(&parctx);
+	Voltt::AST::dump(std::cout, parctx.body.first(), 0);
 
 	return 0;
 }
