@@ -7,10 +7,13 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <iostream>
+
 constexpr const size_t INIT_MEM = 32;
 
 template <typename List>
-struct ListIterator {
+struct ListIterator
+{
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
 

@@ -23,7 +23,6 @@ auto is_valid_extension(const char* _fname) -> const bool
 static const VolttKeyword VLT_KEYWORDS[] = {
 	{"s32", Tok::TokenTypS32},
 	{"fn", Tok::TokenFn},
-	{"ret", Tok::TokenRet},
 };
 
 auto vlt_keyword_tok(CTX* _ctx, const size_t _start, const size_t _end) -> const Tok::TokID
@@ -32,11 +31,11 @@ auto vlt_keyword_tok(CTX* _ctx, const size_t _start, const size_t _end) -> const
 
 	for ( size_t i = 0; i < ARR_LEN(VLT_KEYWORDS); i++ ) {
 		if (len+1 != std::strlen(VLT_KEYWORDS[i].str)) continue;
-		if (!std::strncmp(_ctx->contents+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str))) return VLT_KEYWORDS[i].id;
+		if (std::strncmp(_ctx->contents+_start, VLT_KEYWORDS[i].str, strlen(VLT_KEYWORDS[i].str)) == 0) return VLT_KEYWORDS[i].id;
 	}
 	
 	bool is_decimal = false;
-	for ( size_t idx = 0; idx <= len; idx++ ) {
+	for ( size_t idx = 0; idx <= len; idx++) {
 		switch (_ctx->contents[_start+idx]) {
 			default: return Tok::TokenIdent;
 
@@ -59,7 +58,7 @@ auto next_c(CTX* _ctx) -> void
 		return;
 	}
 
-	if (_ctx->contents[_ctx->pos] == 10) { // newline check
+	if (_ctx->contents[_ctx->pos] == 10) {
 		++_ctx->line;
 		_ctx->col = 0;
 	}

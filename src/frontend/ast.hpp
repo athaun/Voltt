@@ -14,8 +14,6 @@ enum NodeType : uint8_t {
     TyType,
     TyExprBin,
     TyExprDecl,
-    TyProtoArg,
-    TyProto,
 };
 
 struct Node;
@@ -50,16 +48,6 @@ struct NodeExprDecl {
     Node* expr;
 };
 
-struct NodeProtoArg {
-    Node* ident;
-    Node* type;
-};
-
-struct NodeProto {
-    Node* arg;
-    Node* next{};
-};
-
 struct Node {
     NodeType type;
     Tok::Token tok;
@@ -71,8 +59,6 @@ struct Node {
         NodeTy ty;
         NodeExprBin expr_bin;
         NodeExprDecl expr_decl;
-        NodeProtoArg proto_arg;
-        NodeProto proto;
     } data;
 
 };

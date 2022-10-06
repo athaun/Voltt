@@ -1,6 +1,0 @@
-[X] Implement List
-[X] Switch from Vector to list
-[X] Reimplement Parser - Add expecting cases - stop using switches
-[X] Reimplement ASTGen
-[] Parse Functions
-[] Codegen

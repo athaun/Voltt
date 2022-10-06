@@ -39,7 +39,6 @@ enum TokID : uint8_t {
     TokenTypS32,
 
 	TokenFn,
-	TokenRet,
    
 	TokenIdent,
     TokenLiteralNumeric,

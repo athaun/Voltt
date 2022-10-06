@@ -1,7 +1,9 @@
 #pragma once
 
-#include "ast.hpp"
+#include "tok.hpp"
 #include "tokenizer.hpp"
+#include "../todo.hpp"
+#include "ast.hpp"
 
 #include <functional>
 
@@ -42,11 +44,7 @@ auto inline parse_addative_expr(CTX* _ctx) -> AST::Node*
     );
 }
 
-auto parse_proto(CTX* _ctx) -> AST::Node*;
-
-auto parse_proto_arg(CTX* _ctx) -> AST::Node*;
- 
-auto parse_ty(CTX* _ctx, const bool _fn_type = false) -> AST::Node*;
+auto parse_ty(CTX* _ctx) -> AST::Node*;
 
 template<typename RET>
 auto parse_lit(CTX* _ctx, const AST::NodeType _ty, std::function<RET(const char*)> _parse_fn) -> AST::Node*;
@@ -74,7 +72,7 @@ struct CTX {
 
     ~CTX()
     {
-        //for ( auto& node : body ) AST::free_node(node);
+        for ( auto& node : body ) AST::free_node(node);
         std::free(const_cast<char*>(contents));
         contents = nullptr;
     }

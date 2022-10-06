@@ -1,4 +1,6 @@
 #include "ast.hpp"
+#include "tok.hpp"
+#include <cstdlib>
 
 namespace Voltt {
 namespace AST {

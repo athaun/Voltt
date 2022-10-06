@@ -3,16 +3,13 @@
 #include <functional>
 
 struct defer {
+	std::function<void(void)> m_action;
 
-	using Action = std::function<void(void)>;
-
-	Action m_action;
-
-	explicit defer(const Action& _act)
+	explicit defer(const std::function<void(void)>& _act)
 	: m_action(_act)
 	{}
 
-	explicit defer(Action&& _act)
+	explicit defer(std::function<void(void)>&& _act)
 	: m_action(std::move(_act))
 	{}
 
