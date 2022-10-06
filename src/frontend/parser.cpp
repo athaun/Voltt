@@ -1,8 +1,6 @@
 #include "parser.hpp"
 #include "ast.hpp"
 #include "tok.hpp"
-#include <functional>
-#include <string>
 
 namespace Voltt {
 namespace Parser {
@@ -120,46 +118,99 @@ auto parse_expr_decl(CTX* _ctx) -> AST::Node*
 
 auto parse_bin_expr(CTX* _ctx, std::function<AST::Node*(CTX*)> _parse_fn, List<Tok::TokID> _cases) -> AST::Node*
 {
+    TODO
     AST::Node* lhs = _parse_fn(_ctx);
     for (;;) {
         const Tok::Token op = curr_t(_ctx);
 
-        bool case_match = false;
-        for ( const auto& id : _cases ) {
-            if (op.id == id) {
-                case_match = true;
-                break;
-            }
+        for ( const auto& id : _cases ) if (op.id == id) goto fn_parse_bin_expr_case_end;
+        goto fn_parse_bin_expr_end;
+
+        fn_parse_bin_expr_case_end: {    
+            next_t(_ctx); // Consume OP
+
+            AST::Node* rhs = _parse_fn(_ctx);
+            AST::Node* new_lhs = gen_node(_ctx, AST::TyExprBin);
+            new_lhs->data.expr_bin.op = op.id;
+            new_lhs->data.expr_bin.lhs = lhs;
+            new_lhs->data.expr_bin.rhs = rhs;
+    
+            lhs = new_lhs;
         }
-
-        if (!case_match) goto fn_parse_bin_expr_end;
-    
-        next_t(_ctx); // Consume OP
-
-        AST::Node* rhs = _parse_fn(_ctx);
-        AST::Node* new_lhs = gen_node(_ctx, AST::TyExprBin);
-        new_lhs->data.expr_bin.op = op.id;
-        new_lhs->data.expr_bin.lhs = lhs;
-        new_lhs->data.expr_bin.rhs = rhs;
-    
-        lhs = new_lhs;
     }
 
     fn_parse_bin_expr_end: return lhs;
 }
 
-
-auto parse_ty(CTX* _ctx) -> AST::Node*
+auto parse_proto(CTX* _ctx) -> AST::Node*
 {
+    TODO
+    if (curr_t(_ctx).id != Tok::TokenParenOpen) Logger::unhandled_case_err("Function prototypes require parenthesis.", DBCTX);
+
+    AST::Node* root_arg = gen_node(_ctx, AST::TyProto);
+    root_arg->data.proto.arg = gen_node(_ctx, AST::TyProtoArg);
+    AST::Node* arg = root_arg; 
+
+    for (;;) {
+        arg->data.proto.arg->data.proto_arg.ident = parse_ident(_ctx);
+        if (!next_expecting(_ctx, Tok::TokenColonSymbol)) Logger::unhandled_case_err("Prototype arguments require a type specifier.", DBCTX);
+        arg->data.proto.arg->data.proto_arg.type = parse_ty(_ctx, true);
+
+        switch (curr_t(_ctx).id) {
+            default: Logger::unhandled_case_err("Uqualified ident", DBCTX);
+
+            case Tok::TokenParenClose: {
+                next_t(_ctx); // Consume ')'
+                goto fn_parse_proto_end;
+            }
+            case Tok::TokenComma: {
+                Tok::dump(std::cout, curr_t(_ctx), _ctx->contents);
+                arg->data.proto.next = gen_node(_ctx, AST::TyProtoArg);
+                //arg->data.proto.next->data.proto_arg = gen_node(_ctx, AST::TyProtoArg);
+                arg = arg->data.proto.next;
+            };
+        }
+
+    }
+
+    fn_parse_proto_end: return root_arg;
+}
+
+auto parse_proto_arg(CTX* _ctx) -> AST::Node*
+{
+    TODO
+    AST::Node* arg = gen_node(_ctx, AST::TyProtoArg);
+    arg->data.proto_arg.ident = parse_ident(_ctx);
+    arg->data.proto_arg.type = parse_ty(_ctx);
+    return arg;
+}
+
+auto parse_ty(CTX* _ctx, const bool _fn_type) -> AST::Node*
+{
+    switch (curr_t(_ctx).id) {
+        default: break;
+        
+        case Tok::TokenFn: {
+            next_t(_ctx); // Consume 'fn'
+            return parse_proto(_ctx);
+        }
+
+        // case struct
+        // case enum
+        // case union
+    }
+
     AST::Node* root_ty = gen_node(_ctx, AST::TyType);
     AST::Node* ty = root_ty;
 
-    for(;;) {
+    for (;;) {
         ty->data.ty.ident = parse_ident(_ctx); // parse and consume type
-
         switch (curr_t(_ctx).id) {
             default: Logger::invalid_type_identifier(dump_errctx(_ctx));
 
+            case Tok::TokenParenClose:
+            case Tok::TokenComma: if (!_fn_type) goto fn_parse_ty_end;
+            
             case Tok::TokenColonSymbol:
             case Tok::TokenEqSymbol: goto fn_parse_ty_end;
 

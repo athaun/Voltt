@@ -75,13 +75,14 @@ auto to_str(const Tok::Token& _tok, const char* _source) -> char const*
 		case TokenTypS32: return "s32";
 
 		case TokenFn: return "fn";
+		case TokenRet: return "ret";
 		
 		case TokenEndStatement: return "TokenEndStatement";
 		case TokenEndOfFile: return "TokenEndOfFile";
 
 		// In order to prevent memory leaks the result of this function must follow this pattern
 		// switch (Tok::Token.id) {
-		//	  case Tok::ALLOC_STR_CASE: std::free((char*)word);
+		//	  case Tok::ALLOC_STR_CASE: std::free(const_cast<char*>(word));
 		//	  default break;
 		// }
 		// This solution is hacky, but it can greatly reduce the amount of allocations and copies.
